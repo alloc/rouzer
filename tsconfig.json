@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["dom", "es2019"],
+    "target": "esnext"
+  }
+}
