@@ -1,5 +1,5 @@
-import { shake } from '../common'
-import type { Promisable, RouteRequest } from '../types'
+import { shake } from '../common.js'
+import type { Promisable, RouteRequest } from '../types.js'
 
 export function createClient(config: {
   /**

@@ -1,5 +1,5 @@
 import { RoutePattern } from '@remix-run/route-pattern'
-import { mapEntries } from './common'
+import { mapEntries } from './common.js'
 import type {
   MutationRoute,
   QueryRoute,
@@ -8,7 +8,7 @@ import type {
   RouteRequest,
   Routes,
   Unchecked,
-} from './types'
+} from './types.js'
 
 export function $type<T>() {
   return null as unknown as Unchecked<T>

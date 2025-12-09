@@ -5,7 +5,7 @@ import {
   MiddlewareChain,
   type MiddlewareContext,
 } from 'alien-middleware'
-import { mapValues } from '../common'
+import { mapValues } from '../common.js'
 import * as z from 'zod/mini'
 import type {
   InferRouteResponse,
@@ -13,7 +13,7 @@ import type {
   Promisable,
   QueryRoute,
   Routes,
-} from '../types'
+} from '../types.js'
 
 export { chain }
 
