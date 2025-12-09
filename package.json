@@ -9,7 +9,8 @@
     }
   },
   "scripts": {
-    "build": "tsgo -b tsconfig.json"
+    "build": "tsgo -b tsconfig.json",
+    "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
     "zod": ">=4"
