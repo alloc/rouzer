@@ -16,6 +16,8 @@ export function createClient(config: {
    */
   onJsonError?: (response: Response) => Promisable<Response>
 }) {
+  const baseURL = config.baseURL.replace(/\/$/, '')
+
   return {
     config,
     request<T extends RouteRequest>({
@@ -28,7 +30,8 @@ export function createClient(config: {
         path = route.path.parse(path)
       }
 
-      const url = new URL(pathPattern.href(path), config.baseURL)
+      const url = new URL(baseURL)
+      url.pathname += pathPattern.href(path)
 
       if (route.query) {
         query = route.query.parse(query ?? {})
