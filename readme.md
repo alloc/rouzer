@@ -59,7 +59,7 @@ export const handler = createRouter({
 })({
   helloRoute: {
     GET(ctx) {
-      const message = `Hello, ${ctx.params.name}${ctx.query.excited ? '!' : '.'}`
+      const message = `Hello, ${ctx.path.name}${ctx.query.excited ? '!' : '.'}`
       return { message }
     },
   },

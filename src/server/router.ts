@@ -58,8 +58,8 @@ export function createRouter<
   type InferRequestHandler<T, P extends string> = T extends QueryRoute
     ? RequestHandler<
         {
+          path: T extends { path: any } ? z.infer<T['path']> : Params<P>
           query: z.infer<T['query']>
-          params: Params<P>
           headers: z.infer<T['headers']>
         },
         InferRouteResponse<T>
@@ -67,8 +67,8 @@ export function createRouter<
     : T extends MutationRoute
       ? RequestHandler<
           {
+            path: T extends { path: any } ? z.infer<T['path']> : Params<P>
             body: z.infer<T['body']>
-            params: Params<P>
             headers: z.infer<T['headers']>
           },
           InferRouteResponse<T>
@@ -91,7 +91,7 @@ export function createRouter<
     middlewares.use(async function (
       context: AdapterRequestContext<TPlatform> & {
         url?: URL
-        params?: {}
+        path?: {}
       }
     ) {
       const request = context.request as Request
@@ -99,16 +99,35 @@ export function createRouter<
       const url: URL = (context.url ??= new URL(request.url))
 
       for (let i = 0; i < keys.length; i++) {
-        const pattern = patterns[keys[i]]
+        const route = config.routes[keys[i]].routes[method]
+        if (!route) {
+          continue
+        }
 
-        const match = pattern.match(url)
+        const match = patterns[keys[i]].match(url)
         if (!match) {
           continue
         }
 
-        const route = config.routes[keys[i]].routes[method]
-        if (!route) {
+        const handler = handlers[keys[i]][method]
+        if (!handler) {
+          if (config.debug) {
+            throw new Error(`Handler not found for route: ${keys[i]} ${method}`)
+          }
           continue
+        }
+
+        if (route.path) {
+          const error = parsePathParams(
+            context,
+            enableStringParsing(route.path),
+            match.params
+          )
+          if (error) {
+            return httpClientError(error, 'Invalid path parameter', config)
+          }
+        } else {
+          context.path = match.params
         }
 
         if (route.headers) {
@@ -138,13 +157,6 @@ export function createRouter<
           }
         }
 
-        const handler = handlers[keys[i]][method]
-        if (!handler) {
-          continue
-        }
-
-        context.params = match.params
-
         const result = await handler(context as any)
         if (result instanceof Response) {
           return result
@@ -166,6 +178,19 @@ function httpClientError(
     },
     { status: 400 }
   )
+}
+
+function parsePathParams(
+  context: AdapterRequestContext & { path?: {} },
+  schema: z.ZodMiniType<any, any>,
+  params: {}
+) {
+  const result = schema.safeParse(params)
+  if (!result.success) {
+    return result.error
+  }
+  context.path = result.data
+  return null
 }
 
 function parseHeaders(
