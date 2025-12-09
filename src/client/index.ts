@@ -1,5 +1,5 @@
 import { shake } from '../common'
-import type { RouteRequest } from '../types'
+import type { Promisable, RouteRequest } from '../types'
 
 export function createClient(config: {
   /**
@@ -14,7 +14,7 @@ export function createClient(config: {
    * Custom handler for non-200 response to a `.json()` request. By default, the
    * response is always parsed as JSON, regardless of the HTTP status code.
    */
-  onJsonError?: (response: Response) => Response
+  onJsonError?: (response: Response) => Promisable<Response>
 }) {
   return {
     config,
