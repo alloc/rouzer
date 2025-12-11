@@ -9,10 +9,10 @@ import { mapValues } from '../common.js'
 import * as z from 'zod/mini'
 import type {
   InferRouteResponse,
-  MutationRoute,
+  MutationMethod,
   Promisable,
-  QueryRoute,
-  Routes,
+  QueryMethod,
+  RouteMethods,
 } from '../types.js'
 
 export { chain }
@@ -43,7 +43,7 @@ export type RouterConfig = {
    * })
    * ```
    */
-  routes: Record<string, { path: string; routes: Routes }>
+  routes: Record<string, { path: string; methods: RouteMethods }>
   /**
    * Middleware to apply to all routes.
    * @see https://github.com/alien-rpc/alien-middleware#quick-start
@@ -70,7 +70,7 @@ export type RouterConfig = {
 }
 
 export function createRouter<
-  TRoutes extends Record<string, { path: string; routes: Routes }>,
+  TRoutes extends Record<string, { path: string; methods: RouteMethods }>,
   TMiddleware extends MiddlewareChain = EmptyMiddlewareChain,
 >(config: RouterConfig & { routes: TRoutes; middlewares?: TMiddleware }) {
   const keys = Object.keys(config.routes)
@@ -86,7 +86,7 @@ export function createRouter<
     context: RequestContext & TArgs
   ) => Promisable<TResult | Response>
 
-  type InferRequestHandler<T, P extends string> = T extends QueryRoute
+  type InferRequestHandler<T, P extends string> = T extends QueryMethod
     ? RequestHandler<
         {
           path: T extends { path: any } ? z.infer<T['path']> : Params<P>
@@ -95,7 +95,7 @@ export function createRouter<
         },
         InferRouteResponse<T>
       >
-    : T extends MutationRoute
+    : T extends MutationMethod
       ? RequestHandler<
           {
             path: T extends { path: any } ? z.infer<T['path']> : Params<P>
@@ -108,8 +108,8 @@ export function createRouter<
 
   type RequestHandlers = {
     [K in keyof TRoutes]: {
-      [M in keyof TRoutes[K]['routes']]: InferRequestHandler<
-        TRoutes[K]['routes'][M],
+      [M in keyof TRoutes[K]['methods']]: InferRequestHandler<
+        TRoutes[K]['methods'][M],
         TRoutes[K]['path']
       >
     }
@@ -126,11 +126,11 @@ export function createRouter<
       }
     ) {
       const request = context.request as Request
-      const method = request.method.toUpperCase() as keyof Routes
+      const method = request.method.toUpperCase() as keyof RouteMethods
       const url: URL = (context.url ??= new URL(request.url))
 
       for (let i = 0; i < keys.length; i++) {
-        const route = config.routes[keys[i]].routes[method]
+        const route = config.routes[keys[i]].methods[method]
         if (!route) {
           continue
         }

@@ -1,12 +1,12 @@
 import { RoutePattern } from '@remix-run/route-pattern'
 import { mapEntries } from './common.js'
 import type {
-  MutationRoute,
-  QueryRoute,
+  MutationMethod,
+  QueryMethod,
   RouteArgs,
   RouteFunction,
   RouteRequest,
-  Routes,
+  RouteMethods,
   Unchecked,
 } from './types.js'
 
@@ -14,10 +14,13 @@ export function $type<T>() {
   return null as unknown as Unchecked<T>
 }
 
-export function route<P extends string, T extends Routes>(path: P, routes: T) {
+export function route<P extends string, T extends RouteMethods>(
+  path: P,
+  methods: T
+) {
   const pathPattern = new RoutePattern(path)
   const createFetch =
-    (method: string, route: QueryRoute | MutationRoute) =>
+    (method: string, route: QueryMethod | MutationMethod) =>
     (args: RouteArgs): RouteRequest => {
       return {
         route,
@@ -29,16 +32,16 @@ export function route<P extends string, T extends Routes>(path: P, routes: T) {
     }
 
   return Object.assign(
-    { path, pathPattern, routes },
+    { path, pathPattern, methods },
     mapEntries(
-      routes as Record<string, QueryRoute | MutationRoute>,
+      methods as Record<string, QueryMethod | MutationMethod>,
       (method, route) => [method, createFetch(method, route)]
     )
   ) as unknown as {
     path: P
     pathPattern: RoutePattern
-    routes: T
+    methods: T
   } & {
-    [K in keyof T]: RouteFunction<Extract<T[K], QueryRoute | MutationRoute>>
+    [K in keyof T]: RouteFunction<Extract<T[K], QueryMethod | MutationMethod>>
   }
 }
