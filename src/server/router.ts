@@ -29,19 +29,50 @@ type EmptyMiddlewareChain<TPlatform = unknown> = MiddlewareChain<{
   platform: TPlatform
 }>
 
-export type RouterConfig<
-  TRoutes extends Record<string, { path: string; routes: Routes }> = any,
-  TMiddleware extends MiddlewareChain = any,
-> = {
-  routes: TRoutes
-  middlewares?: TMiddleware
+export type RouterConfig = {
+  /**
+   * Routes to match.
+   * @example
+   * ```ts
+   * // This namespace contains your `route()` declarations.
+   * // Pass it to the `createRouter` function.
+   * import * as routes from './routes'
+   *
+   * createRouter({ routes })({
+   *   // your route handlers...
+   * })
+   * ```
+   */
+  routes: Record<string, { path: string; routes: Routes }>
+  /**
+   * Middleware to apply to all routes.
+   * @see https://github.com/alien-rpc/alien-middleware#quick-start
+   * @example
+   * ```ts
+   * middlewares: chain().use(ctx => {
+   *   return {
+   *     db: postgres(ctx.env('POSTGRES_URL')),
+   *   }
+   * }),
+   * ```
+   */
+  middlewares?: MiddlewareChain
+  /**
+   * Enable debugging features.
+   * - When a handler throws an error, include its message in the response body.
+   * - Throw an error if a handler is not found for a route.
+   * @example
+   * ```ts
+   * debug: process.env.NODE_ENV !== 'production',
+   * ```
+   */
   debug?: boolean
 }
 
 export function createRouter<
   TRoutes extends Record<string, { path: string; routes: Routes }>,
   TMiddleware extends MiddlewareChain = EmptyMiddlewareChain,
->(config: { routes: TRoutes; middlewares?: TMiddleware; debug?: boolean }) {
+>(config: RouterConfig & { routes: TRoutes; middlewares?: TMiddleware }) {
   const keys = Object.keys(config.routes)
   const middlewares = config.middlewares ?? (chain() as TMiddleware)
   const patterns = mapValues(
