@@ -31,6 +31,14 @@ type EmptyMiddlewareChain<TPlatform = unknown> = MiddlewareChain<{
 
 export type RouterConfig = {
   /**
+   * Base path to prepend to all routes.
+   * @example
+   * ```ts
+   * basePath: 'api/',
+   * ```
+   */
+  basePath?: string
+  /**
    * Routes to match.
    * @example
    * ```ts
@@ -75,9 +83,13 @@ export function createRouter<
 >(config: RouterConfig & { routes: TRoutes; middlewares?: TMiddleware }) {
   const keys = Object.keys(config.routes)
   const middlewares = config.middlewares ?? (chain() as TMiddleware)
+
+  const basePath = config.basePath?.replace(/(^\/)|(\/$)/, '')
   const patterns = mapValues(
     config.routes,
-    ({ path }) => new RoutePattern(path)
+    basePath
+      ? ({ path }) => new RoutePattern(`${basePath}/${path}`)
+      : ({ path }) => new RoutePattern(path)
   )
 
   type RequestContext = MiddlewareContext<TMiddleware>
