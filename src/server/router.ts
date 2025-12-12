@@ -13,6 +13,7 @@ import type {
   Promisable,
   QueryMethod,
   RouteMethods,
+  Routes,
 } from '../types.js'
 
 export { chain }
@@ -51,7 +52,7 @@ export type RouterConfig = {
    * })
    * ```
    */
-  routes: Record<string, { path: string; methods: RouteMethods }>
+  routes: Routes
   /**
    * Middleware to apply to all routes.
    * @see https://github.com/alien-rpc/alien-middleware#quick-start
@@ -77,19 +78,24 @@ export type RouterConfig = {
   debug?: boolean
 }
 
+interface CreateRouterConfig<
+  TRoutes extends Routes,
+  TMiddleware extends MiddlewareChain,
+> extends RouterConfig {
+  routes: TRoutes
+  middlewares?: TMiddleware
+}
+
 export function createRouter<
-  TRoutes extends Record<string, { path: string; methods: RouteMethods }>,
+  TRoutes extends Routes,
   TMiddleware extends MiddlewareChain = EmptyMiddlewareChain,
->(config: RouterConfig & { routes: TRoutes; middlewares?: TMiddleware }) {
+>(config: CreateRouterConfig<TRoutes, TMiddleware>) {
   const keys = Object.keys(config.routes)
   const middlewares = config.middlewares ?? (chain() as TMiddleware)
 
-  const basePath = config.basePath?.replace(/(^\/)|(\/$)/, '')
-  const patterns = mapValues(
-    config.routes,
-    basePath
-      ? ({ path }) => new RoutePattern(`${basePath}/${path}`)
-      : ({ path }) => new RoutePattern(path)
+  const basePath = config.basePath?.replace(/\/?$/, '/')
+  const patterns = mapValues(config.routes, ({ path }) =>
+    basePath ? new RoutePattern(path.source.replace(/^\/?/, basePath)) : path
   )
 
   type RequestContext = MiddlewareContext<TMiddleware>
@@ -122,7 +128,7 @@ export function createRouter<
     [K in keyof TRoutes]: {
       [M in keyof TRoutes[K]['methods']]: InferRequestHandler<
         TRoutes[K]['methods'][M],
-        TRoutes[K]['path']
+        TRoutes[K]['path']['source']
       >
     }
   }

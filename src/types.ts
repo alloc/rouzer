@@ -29,6 +29,10 @@ export type RouteMethods = {
   DELETE?: MutationMethod
 }
 
+export type Routes = {
+  [key: string]: { path: RoutePattern; methods: RouteMethods }
+}
+
 declare class Any {
   private isAny: true
 }
@@ -64,7 +68,7 @@ export type RouteArgs<T extends QueryMethod | MutationMethod = any> = ([
 
 export type RouteRequest<TResult = any> = {
   route: QueryMethod | MutationMethod
-  pathPattern: RoutePattern
+  path: RoutePattern
   method: string
   args: RouteArgs
   $result: TResult

@@ -21,7 +21,7 @@ export function createClient(config: {
   return {
     config,
     request<T extends RouteRequest>({
-      pathPattern,
+      path: pathBuilder,
       method,
       args: { path, query, body, headers },
       route,
@@ -30,8 +30,15 @@ export function createClient(config: {
         path = route.path.parse(path)
       }
 
-      const url = new URL(baseURL)
-      url.pathname += pathPattern.href(path)
+      let url: URL
+
+      const href = pathBuilder.href(path)
+      if (href[0] === '/') {
+        url = new URL(baseURL)
+        url.pathname += pathBuilder.href(path)
+      } else {
+        url = new URL(href)
+      }
 
       if (route.query) {
         query = route.query.parse(query ?? {})

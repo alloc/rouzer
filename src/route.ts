@@ -15,16 +15,16 @@ export function $type<T>() {
 }
 
 export function route<P extends string, T extends RouteMethods>(
-  path: P,
+  pattern: P,
   methods: T
 ) {
-  const pathPattern = new RoutePattern(path)
+  const path = new RoutePattern(pattern)
   const createFetch =
     (method: string, route: QueryMethod | MutationMethod) =>
     (args: RouteArgs): RouteRequest => {
       return {
         route,
-        pathPattern,
+        path,
         method,
         args,
         $result: undefined!,
@@ -32,14 +32,13 @@ export function route<P extends string, T extends RouteMethods>(
     }
 
   return Object.assign(
-    { path, pathPattern, methods },
+    { path, methods },
     mapEntries(
       methods as Record<string, QueryMethod | MutationMethod>,
       (method, route) => [method, createFetch(method, route)]
     )
   ) as unknown as {
-    path: P
-    pathPattern: RoutePattern
+    path: RoutePattern<P>
     methods: T
   } & {
     [K in keyof T]: RouteFunction<Extract<T[K], QueryMethod | MutationMethod>>
