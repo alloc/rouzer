@@ -19,6 +19,8 @@
     "@alloc/prettier-config": "^1.0.0",
     "@typescript/native-preview": "7.0.0-dev.20251208.1",
     "prettier": "^3.7.4",
+    "tsc-lint": "^0.1.9",
+    "typescript": "^5.9.3",
     "zod": "^4.1.13"
   },
   "dependencies": {
