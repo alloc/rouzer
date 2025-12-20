@@ -66,7 +66,7 @@ export function createClient(config: {
       return fetch(url, {
         method,
         body: body !== undefined ? JSON.stringify(body) : undefined,
-        headers,
+        headers: headers as HeadersInit,
       }) as Promise<Response & { json(): Promise<T['$result']> }>
     },
     async json<T extends RouteRequest>(request: T): Promise<T['$result']> {

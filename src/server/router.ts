@@ -148,7 +148,8 @@ export function createRouter<
       const url: URL = (context.url ??= new URL(request.url))
 
       for (let i = 0; i < keys.length; i++) {
-        const route = config.routes[keys[i]].methods[method]
+        const route =
+          config.routes[keys[i]].methods[method as keyof RouteMethods]
         if (!route) {
           continue
         }
@@ -158,7 +159,7 @@ export function createRouter<
           continue
         }
 
-        const handler = handlers[keys[i]][method]
+        const handler = handlers[keys[i]][method as keyof RouteMethods]
         if (!handler) {
           if (config.debug) {
             throw new Error(`Handler not found for route: ${keys[i]} ${method}`)
