@@ -66,6 +66,34 @@ export const handler = createRouter({
 })
 ```
 
+## Router options
+
+```ts
+export const handler = createRouter({
+  routes,
+  middlewares,
+  basePath: 'api/',
+  cors: {
+    allowOrigins: ['example.net', 'https://*.example.com', '*://localhost:3000'],
+  },
+  debug: process.env.NODE_ENV === 'development',
+})({
+  helloRoute: {
+    GET(ctx) {
+      const message = `Hello, ${ctx.path.name}${ctx.query.excited ? '!' : '.'}`
+      return { message }
+    },
+  },
+})
+```
+
+- `basePath` is prepended to every route (leading/trailing slashes are trimmed).
+- CORS preflight (`OPTIONS`) is handled automatically for matched routes.
+- `cors.allowOrigins` restricts preflight requests to a list of origins (default is to allow any origin).
+  - Wildcards are supported for protocol and subdomain; the protocol is optional and defaults to `https`.
+- If you rely on `Cookie` or `Authorization` request headers, you must set
+  `Access-Control-Allow-Credentials` in your handler.
+
 ## Client wrapper
 
 ```ts
