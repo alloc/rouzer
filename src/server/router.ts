@@ -181,8 +181,9 @@ export function createRouter<
       const request = context.request as Request
       const origin = request.headers.get('Origin')
       if (
+        origin &&
         allowOrigins &&
-        !(origin && allowOrigins.some(pattern => pattern.test(origin)))
+        !allowOrigins.some(pattern => pattern.test(origin))
       ) {
         return new Response(null, { status: 403 })
       }
@@ -227,9 +228,9 @@ export function createRouter<
           })
         }
 
-        // Since we can't know if this was preceded by a preflight request, we
-        // set this header for all requests.
-        context.setHeader('Access-Control-Allow-Origin', origin ?? '*')
+        if (origin) {
+          context.setHeader('Access-Control-Allow-Origin', origin)
+        }
 
         if (route.path) {
           const error = parsePathParams(
