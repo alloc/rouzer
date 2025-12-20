@@ -82,6 +82,14 @@ export type RouterConfig = {
   cors?: {
     /**
      * If defined, requests must have an `Origin` header that is in this list.
+     *
+     * Origins may contain wildcards for protocol and subdomain. The protocol is
+     * optional and defaults to `https`.
+     *
+     * @example
+     * ```ts
+     * allowOrigins: ['example.net', 'https://*.example.com', '*://localhost:3000']
+     * ```
      */
     allowOrigins?: string[]
   }
@@ -106,6 +114,23 @@ export function createRouter<
   const patterns = mapValues(config.routes, ({ path }) =>
     basePath ? new RoutePattern(path.source.replace(/^\/?/, basePath)) : path
   )
+
+  const allowOrigins = config.cors?.allowOrigins?.map(origin => {
+    if (!origin.includes('//')) {
+      origin = `https://${origin}`
+    }
+    if (origin.includes('*')) {
+      return new RegExp(
+        `^${
+          origin
+            .replace(/\./g, '\\.')
+            .replace(/\*:/g, '[^:]+:') // Wildcard protocol
+            .replace(/\*\./g, '([^/.]+\\.)?') // Wildcard subdomain
+        }$`
+      )
+    }
+    return new ExactPattern(origin)
+  })
 
   type RequestContext = MiddlewareContext<TMiddleware>
 
@@ -184,8 +209,10 @@ export function createRouter<
 
         if (isPreflight) {
           const origin = request.headers.get('Origin')
-          const allowed = config.cors?.allowOrigins
-          if (allowed && !(origin && allowed.includes(origin))) {
+          if (
+            allowOrigins &&
+            !(origin && allowOrigins.some(pattern => pattern.test(origin)))
+          ) {
             return new Response(null, { status: 403 })
           }
           return new Response(null, {
@@ -351,4 +378,11 @@ function enableStringParsing(schema: z.ZodMiniType<any, any>): typeof schema {
 
 function toBooleanStrict(value: string) {
   return value === 'true' || (value === 'false' ? false : value)
+}
+
+class ExactPattern {
+  constructor(private readonly value: string) {}
+  test(input: string) {
+    return input === this.value
+  }
 }
