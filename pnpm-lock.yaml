@@ -15,8 +15,8 @@ importers:
         specifier: ^0.15.3
         version: 0.15.3
       alien-middleware:
-        specifier: ^0.10.2
-        version: 0.10.2(@hattip/core@0.0.49)
+        specifier: ^0.10.3
+        version: 0.10.3(@hattip/core@0.0.49)
     devDependencies:
       '@alloc/prettier-config':
         specifier: ^1.0.0
@@ -87,8 +87,8 @@ packages:
     resolution: {integrity: sha512-HkTh7dTDL6F2m6mBvCYIWKBZ+M2vaqBylarvtRvP128BhVeT8naS2UDcYUe7BGOCSxv70Zzfg/Sim1IWk2uKkQ==}
     hasBin: true
 
-  alien-middleware@0.10.2:
-    resolution: {integrity: sha512-gSZjxwrrDbn1Uv0x2FjrPT6dUWRYITPgCWdJm0HXquYfNe6oZDQ6HFhzaBDBUYhK3pc5X/LGfQR91YiD5DlAxg==}
+  alien-middleware@0.10.3:
+    resolution: {integrity: sha512-l1QKbQobMQbHi1fAYXmA9ePBBilUPSkERyr4eoxyWC17VLvNjmnV2Eq80OiTwclgUEHhetJ4Hr+gALvMnu4Haw==}
     peerDependencies:
       '@hattip/core': '*'
 
@@ -197,7 +197,7 @@ snapshots:
       '@typescript/native-preview-win32-arm64': 7.0.0-dev.20251208.1
       '@typescript/native-preview-win32-x64': 7.0.0-dev.20251208.1
 
-  alien-middleware@0.10.2(@hattip/core@0.0.49):
+  alien-middleware@0.10.3(@hattip/core@0.0.49):
     dependencies:
       '@hattip/core': 0.0.49
       pathic: 0.1.6

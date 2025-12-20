@@ -3,6 +3,7 @@ import { RoutePattern, type Params } from '@remix-run/route-pattern'
 import {
   chain,
   MiddlewareChain,
+  type HattipContext,
   type MiddlewareContext,
 } from 'alien-middleware'
 import { mapValues } from '../common.js'
@@ -172,12 +173,20 @@ export function createRouter<
 
   return (handlers: RequestHandlers) =>
     middlewares.use(async function (
-      context: AdapterRequestContext<TPlatform> & {
+      context: HattipContext<TPlatform, any> & {
         url?: URL
         path?: {}
       }
     ) {
       const request = context.request as Request
+      const origin = request.headers.get('Origin')
+      if (
+        allowOrigins &&
+        !(origin && allowOrigins.some(pattern => pattern.test(origin)))
+      ) {
+        return new Response(null, { status: 403 })
+      }
+
       const url: URL = (context.url ??= new URL(request.url))
 
       let method = request.method.toUpperCase()
@@ -208,13 +217,6 @@ export function createRouter<
         }
 
         if (isPreflight) {
-          const origin = request.headers.get('Origin')
-          if (
-            allowOrigins &&
-            !(origin && allowOrigins.some(pattern => pattern.test(origin)))
-          ) {
-            return new Response(null, { status: 403 })
-          }
           return new Response(null, {
             headers: {
               'Access-Control-Allow-Origin': origin ?? '*',
@@ -224,6 +226,10 @@ export function createRouter<
             },
           })
         }
+
+        // Since we can't know if this was preceded by a preflight request, we
+        // set this header for all requests.
+        context.setHeader('Access-Control-Allow-Origin', origin ?? '*')
 
         if (route.path) {
           const error = parsePathParams(
