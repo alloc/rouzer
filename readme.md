@@ -39,6 +39,17 @@ The following request parts can be validated with Zod:
 
 Zod validation happens on both the server and client.
 
+## Route URL patterns
+
+Rouzer uses `@remix-run/route-pattern` for matching and generation. Patterns can include:
+
+- Pathname-only patterns like `blog/:slug` (default).
+- Full URLs with protocol/hostname/port like `https://:store.shopify.com/orders`.
+- Dynamic segments with `:param` names (valid JS identifiers), including multiple params in one segment like `v:major.:minor`.
+- Optional segments wrapped in parentheses, which can be nested like `api(/v:major(.:minor))`.
+- Wildcards with `*name` (captured) or `*` (uncaptured) for multi-segment paths like `assets/*path` or `files/*`.
+- Query matching with `?` to require parameters or exact values like `search?q` or `search?q=routing`.
+
 ## Server router
 
 ```ts
