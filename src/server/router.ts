@@ -125,7 +125,7 @@ export function createRouter<
           origin
             .replace(/\./g, '\\.')
             .replace(/\*:/g, '[^:]+:') // Wildcard protocol
-            .replace(/\*\./g, '([^/.]+\\.)?') // Wildcard subdomain
+            .replace(/\*\\\./g, '([^/.]+\\.)?') // Wildcard subdomain
         }$`
       )
     }
