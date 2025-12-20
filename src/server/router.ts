@@ -76,6 +76,15 @@ export type RouterConfig = {
    * ```
    */
   debug?: boolean
+  /**
+   * CORS configuration.
+   */
+  cors?: {
+    /**
+     * If defined, requests must have an `Origin` header that is in this list.
+     */
+    allowOrigins?: string[]
+  }
 }
 
 interface CreateRouterConfig<
@@ -144,8 +153,14 @@ export function createRouter<
       }
     ) {
       const request = context.request as Request
-      const method = request.method.toUpperCase() as keyof RouteMethods
       const url: URL = (context.url ??= new URL(request.url))
+
+      let method = request.method.toUpperCase()
+      let isPreflight = false
+      if (method === 'OPTIONS') {
+        method = request.headers.get('Access-Control-Request-Method') ?? 'GET'
+        isPreflight = true
+      }
 
       for (let i = 0; i < keys.length; i++) {
         const route =
@@ -165,6 +180,22 @@ export function createRouter<
             throw new Error(`Handler not found for route: ${keys[i]} ${method}`)
           }
           continue
+        }
+
+        if (isPreflight) {
+          const origin = request.headers.get('Origin')
+          const allowed = config.cors?.allowOrigins
+          if (allowed && !(origin && allowed.includes(origin))) {
+            return new Response(null, { status: 403 })
+          }
+          return new Response(null, {
+            headers: {
+              'Access-Control-Allow-Origin': origin ?? '*',
+              'Access-Control-Allow-Methods': method,
+              'Access-Control-Allow-Headers':
+                request.headers.get('Access-Control-Request-Headers') ?? '',
+            },
+          })
         }
 
         if (route.path) {
