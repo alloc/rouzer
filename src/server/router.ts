@@ -143,8 +143,10 @@ export function createRouter<
     ? RequestHandler<
         {
           path: T extends { path: any } ? z.infer<T['path']> : Params<P>
-          query: z.infer<T['query']>
-          headers: z.infer<T['headers']>
+          query: T extends { query: any } ? z.infer<T['query']> : undefined
+          headers: T extends { headers: any }
+            ? z.infer<T['headers']>
+            : undefined
         },
         InferRouteResponse<T>
       >
@@ -152,8 +154,10 @@ export function createRouter<
       ? RequestHandler<
           {
             path: T extends { path: any } ? z.infer<T['path']> : Params<P>
-            body: z.infer<T['body']>
-            headers: z.infer<T['headers']>
+            body: T extends { body: any } ? z.infer<T['body']> : undefined
+            headers: T extends { headers: any }
+              ? z.infer<T['headers']>
+              : undefined
           },
           InferRouteResponse<T>
         >
