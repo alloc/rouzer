@@ -85,7 +85,11 @@ export const handler = createRouter({
   middlewares,
   basePath: 'api/',
   cors: {
-    allowOrigins: ['example.net', 'https://*.example.com', '*://localhost:3000'],
+    allowOrigins: [
+      'example.net',
+      'https://*.example.com',
+      '*://localhost:3000',
+    ],
   },
   debug: process.env.NODE_ENV === 'development',
 })({
@@ -123,6 +127,30 @@ const response = await client.request(
 )
 
 const { message } = await response.json()
+```
+
+Optionally pass your routes map to `createClient` to get per-route methods on the client:
+
+```ts
+import * as routes from './routes'
+
+const client = createClient({
+  baseURL: '/api/',
+  routes,
+})
+```
+
+Routes that define a `response` type will call `client.json()` under the hood and return the parsed value; routes without one return the raw `Response`:
+
+```ts
+// helloRoute has a response schema, so you get the parsed payload
+const { message } = await client.helloRoute.GET({
+  path: { name: 'world' },
+})
+
+// imagine pingRoute has no response schema; you get a Response object
+const pingResponse = await client.pingRoute.GET({})
+const pingText = await pingResponse.text()
 ```
 
 ## Add an endpoint
