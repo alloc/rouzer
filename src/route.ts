@@ -20,7 +20,7 @@ export type Route<
   path: RoutePattern<P>
   methods: T
 } & {
-  [K in keyof T]: RouteFunction<Extract<T[K], RouteSchema>>
+  [K in keyof T]: RouteFunction<Extract<T[K], RouteSchema>, P>
 }
 
 export function route<P extends string, T extends RouteSchemaMap>(

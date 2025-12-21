@@ -105,7 +105,8 @@ export function createClient<
       [K in keyof TRoutes]: TRoutes[K]['methods'] extends infer TMethods
         ? {
             [M in keyof TMethods]: RouteRequestFunction<
-              Extract<TMethods[M], RouteSchema>
+              Extract<TMethods[M], RouteSchema>,
+              TRoutes[K]['path']['source']
             >
           }
         : never
@@ -116,8 +117,8 @@ export function createClient<
   }
 }
 
-type RouteRequestFunction<T extends RouteSchema> = (
-  args: RouteArgs<T>
+type RouteRequestFunction<T extends RouteSchema, P extends string> = (
+  args: RouteArgs<T, P>
 ) => Promise<T extends { response: any } ? InferRouteResponse<T> : Response>
 
 function connectRoute(

@@ -40,13 +40,15 @@ declare class Any {
   private isAny: true
 }
 
-type PathArgs<T> = T extends { path: infer TPath extends string }
-  ? Params<TPath> extends infer TParams
+type PathArgs<T, P extends string> = T extends { path: infer TPath }
+  ? {} extends z.infer<TPath>
+    ? { path?: z.infer<TPath> }
+    : { path: z.infer<TPath> }
+  : Params<P> extends infer TParams
     ? {} extends TParams
       ? { path?: TParams }
       : { path: TParams }
     : unknown
-  : unknown
 
 type QueryArgs<T> = T extends QueryRouteSchema & { query: infer TQuery }
   ? {} extends z.infer<TQuery>
@@ -62,9 +64,12 @@ type MutationArgs<T> = T extends MutationRouteSchema
     : { body?: unknown }
   : unknown
 
-export type RouteArgs<T extends RouteSchema = any> = ([T] extends [Any]
+export type RouteArgs<
+  T extends RouteSchema = any,
+  P extends string = string,
+> = ([T] extends [Any]
   ? { query?: any; body?: any; path?: any }
-  : QueryArgs<T> & MutationArgs<T> & PathArgs<T>) &
+  : QueryArgs<T> & MutationArgs<T> & PathArgs<T, P>) &
   Omit<RequestInit, 'method' | 'body' | 'headers'> & {
     headers?: Record<string, string | undefined>
   }
@@ -87,9 +92,9 @@ export type InferRouteResponse<T extends RouteSchema> = T extends {
   ? TResponse
   : void
 
-export type RouteFunction<T extends RouteSchema> = {
-  (args: RouteArgs<T>): RouteRequest<InferRouteResponse<T>>
+export type RouteFunction<T extends RouteSchema, P extends string> = {
+  (args: RouteArgs<T, P>): RouteRequest<InferRouteResponse<T>>
 
-  $args: RouteArgs<T>
+  $args: RouteArgs<T, P>
   $response: InferRouteResponse<T>
 }
