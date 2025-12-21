@@ -16,7 +16,7 @@ export type QueryMethod = {
 export type MutationMethod = {
   path?: z.ZodMiniObject<any>
   query?: never
-  body: z.ZodMiniType<any, any>
+  body?: z.ZodMiniType<any, any>
   headers?: z.ZodMiniObject<any>
   response?: Unchecked<any>
 }
