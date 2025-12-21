@@ -54,12 +54,12 @@ type QueryArgs<T> = T extends QueryRouteSchema & { query: infer TQuery }
     : { query: z.infer<TQuery> }
   : unknown
 
-type MutationArgs<T> = T extends MutationRouteSchema & {
-  body: infer TBody
-}
-  ? {} extends z.infer<TBody>
-    ? { body?: z.infer<TBody> }
-    : { body: z.infer<TBody> }
+type MutationArgs<T> = T extends MutationRouteSchema
+  ? T extends { body: infer TBody }
+    ? {} extends z.infer<TBody>
+      ? { body?: z.infer<TBody> }
+      : { body: z.infer<TBody> }
+    : { body?: unknown }
   : unknown
 
 export type RouteArgs<T extends RouteSchema = any> = ([T] extends [Any]
