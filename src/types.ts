@@ -5,7 +5,7 @@ export type Promisable<T> = T | Promise<T>
 
 export type Unchecked<T> = { __unchecked__: T }
 
-export type QueryMethod = {
+export type QueryRouteSchema = {
   path?: z.ZodMiniObject<any>
   query?: z.ZodMiniObject<any>
   body?: never
@@ -13,7 +13,7 @@ export type QueryMethod = {
   response: Unchecked<any>
 }
 
-export type MutationMethod = {
+export type MutationRouteSchema = {
   path?: z.ZodMiniObject<any>
   query?: never
   body?: z.ZodMiniType<any, any>
@@ -21,16 +21,19 @@ export type MutationMethod = {
   response?: Unchecked<any>
 }
 
-export type RouteMethods = {
-  GET?: QueryMethod
-  POST?: MutationMethod
-  PUT?: MutationMethod
-  PATCH?: MutationMethod
-  DELETE?: MutationMethod
+export type RouteSchemaMap = {
+  GET?: QueryRouteSchema
+  POST?: MutationRouteSchema
+  PUT?: MutationRouteSchema
+  PATCH?: MutationRouteSchema
+  DELETE?: MutationRouteSchema
 }
 
+export type Method = string & keyof RouteSchemaMap
+export type RouteSchema = QueryRouteSchema | MutationRouteSchema
+
 export type Routes = {
-  [key: string]: { path: RoutePattern; methods: RouteMethods }
+  [key: string]: { path: RoutePattern; methods: RouteSchemaMap }
 }
 
 declare class Any {
@@ -45,21 +48,21 @@ type PathArgs<T> = T extends { path: infer TPath extends string }
     : unknown
   : unknown
 
-type QueryArgs<T> = T extends QueryMethod & { query: infer TQuery }
+type QueryArgs<T> = T extends QueryRouteSchema & { query: infer TQuery }
   ? {} extends z.infer<TQuery>
     ? { query?: z.infer<TQuery> }
     : { query: z.infer<TQuery> }
   : unknown
 
-type MutationArgs<T> = T extends MutationMethod & { body: infer TBody }
+type MutationArgs<T> = T extends MutationRouteSchema & {
+  body: infer TBody
+}
   ? {} extends z.infer<TBody>
     ? { body?: z.infer<TBody> }
     : { body: z.infer<TBody> }
   : unknown
 
-export type RouteArgs<T extends QueryMethod | MutationMethod = any> = ([
-  T,
-] extends [Any]
+export type RouteArgs<T extends RouteSchema = any> = ([T] extends [Any]
   ? { query?: any; body?: any; path?: any }
   : QueryArgs<T> & MutationArgs<T> & PathArgs<T>) &
   Omit<RequestInit, 'method' | 'body' | 'headers'> & {
@@ -67,7 +70,7 @@ export type RouteArgs<T extends QueryMethod | MutationMethod = any> = ([
   }
 
 export type RouteRequest<TResult = any> = {
-  route: QueryMethod | MutationMethod
+  schema: RouteSchema
   path: RoutePattern
   method: string
   args: RouteArgs
@@ -78,14 +81,13 @@ export type RouteResponse<TResult = any> = Response & {
   json(): Promise<TResult>
 }
 
-export type InferRouteResponse<T extends QueryMethod | MutationMethod> =
-  T extends {
-    response: Unchecked<infer TResponse>
-  }
-    ? TResponse
-    : void
+export type InferRouteResponse<T extends RouteSchema> = T extends {
+  response: Unchecked<infer TResponse>
+}
+  ? TResponse
+  : void
 
-export type RouteFunction<T extends QueryMethod | MutationMethod> = {
+export type RouteFunction<T extends RouteSchema> = {
   (args: RouteArgs<T>): RouteRequest<InferRouteResponse<T>>
 
   $args: RouteArgs<T>

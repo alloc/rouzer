@@ -6,14 +6,14 @@ import {
   type HattipContext,
   type MiddlewareContext,
 } from 'alien-middleware'
-import { mapValues } from '../common.js'
 import * as z from 'zod/mini'
+import { mapValues } from '../common.js'
 import type {
   InferRouteResponse,
-  MutationMethod,
+  Method,
+  MutationRouteSchema,
   Promisable,
-  QueryMethod,
-  RouteMethods,
+  QueryRouteSchema,
   Routes,
 } from '../types.js'
 
@@ -139,7 +139,7 @@ export function createRouter<
     context: RequestContext & TArgs
   ) => Promisable<TResult | Response>
 
-  type InferRequestHandler<T, P extends string> = T extends QueryMethod
+  type InferRequestHandler<T, P extends string> = T extends QueryRouteSchema
     ? RequestHandler<
         {
           path: T extends { path: any } ? z.infer<T['path']> : Params<P>
@@ -148,7 +148,7 @@ export function createRouter<
         },
         InferRouteResponse<T>
       >
-    : T extends MutationMethod
+    : T extends MutationRouteSchema
       ? RequestHandler<
           {
             path: T extends { path: any } ? z.infer<T['path']> : Params<P>
@@ -198,8 +198,7 @@ export function createRouter<
       }
 
       for (let i = 0; i < keys.length; i++) {
-        const route =
-          config.routes[keys[i]].methods[method as keyof RouteMethods]
+        const route = config.routes[keys[i]].methods[method as Method]
         if (!route) {
           continue
         }
@@ -209,7 +208,7 @@ export function createRouter<
           continue
         }
 
-        const handler = handlers[keys[i]][method as keyof RouteMethods]
+        const handler = handlers[keys[i]][method as Method]
         if (!handler) {
           if (config.debug) {
             throw new Error(`Handler not found for route: ${keys[i]} ${method}`)
