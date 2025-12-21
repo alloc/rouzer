@@ -10,7 +10,7 @@ export type QueryRouteSchema = {
   query?: z.ZodMiniObject<any>
   body?: never
   headers?: z.ZodMiniObject<any>
-  response: Unchecked<any>
+  response?: Unchecked<any>
 }
 
 export type MutationRouteSchema = {

@@ -1,6 +1,7 @@
 import { mapValues, shake } from '../common.js'
 import { Route } from '../route.js'
 import type {
+  InferRouteResponse,
   Promisable,
   RouteArgs,
   RouteRequest,
@@ -99,13 +100,13 @@ export function createClient<
 
   return {
     ...((config.routes
-      ? mapValues(config.routes, route => connectRoute(route, request))
+      ? mapValues(config.routes, route => connectRoute(route, request, json))
       : null) as unknown as {
       [K in keyof TRoutes]: TRoutes[K]['methods'] extends infer TMethods
         ? {
-            [M in keyof TMethods]: (
-              args: RouteArgs<Extract<TMethods[M], RouteSchema>>
-            ) => Promise<Response>
+            [M in keyof TMethods]: RouteRequestFunction<
+              Extract<TMethods[M], RouteSchema>
+            >
           }
         : never
     }),
@@ -115,14 +116,20 @@ export function createClient<
   }
 }
 
+type RouteRequestFunction<T extends RouteSchema> = (
+  args: RouteArgs<T>
+) => Promise<T extends { response: any } ? InferRouteResponse<T> : Response>
+
 function connectRoute(
   route: Route,
-  request: (props: RouteRequest) => Promise<Response>
+  request: (props: RouteRequest) => Promise<Response>,
+  json: (props: RouteRequest) => Promise<any>
 ) {
   return {
     ...route,
-    ...mapValues(route.methods, (_, key) => {
-      return (args: RouteArgs) => request(route[key]!(args))
+    ...mapValues(route.methods, (schema, key) => {
+      const fetch = schema.response ? json : request
+      return (args: RouteArgs) => fetch(route[key]!(args))
     }),
   }
 }
