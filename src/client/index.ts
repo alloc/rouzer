@@ -104,7 +104,7 @@ export function createClient<
       : null) as unknown as {
       [K in keyof TRoutes]: TRoutes[K]['methods'] extends infer TMethods
         ? {
-            [M in keyof TMethods]: RouteRequestFunction<
+            [M in keyof TMethods]: RouteFunction<
               Extract<TMethods[M], RouteSchema>,
               TRoutes[K]['path']['source']
             >
@@ -117,8 +117,17 @@ export function createClient<
   }
 }
 
-type RouteRequestFunction<T extends RouteSchema, P extends string> = (
-  args: RouteArgs<T, P>
+/**
+ * This function sends a request to a route of the same name. Such a function is
+ * accessible by setting the `routes` option when creating a Rouzer client,
+ * where it will exist as a method on the client.
+ */
+export type RouteFunction<T extends RouteSchema, P extends string> = (
+  ...p: RouteArgs<T, P> extends infer TArgs
+    ? {} extends TArgs
+      ? [args?: TArgs]
+      : [args: TArgs]
+    : never
 ) => Promise<T extends { response: any } ? InferRouteResponse<T> : Response>
 
 function connectRoute(

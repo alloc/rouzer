@@ -92,8 +92,14 @@ export type InferRouteResponse<T extends RouteSchema> = T extends {
   ? TResponse
   : void
 
-export type RouteFunction<T extends RouteSchema, P extends string> = {
-  (args: RouteArgs<T, P>): RouteRequest<InferRouteResponse<T>>
+export type RouteRequestFactory<T extends RouteSchema, P extends string> = {
+  (
+    ...p: RouteArgs<T, P> extends infer TArgs
+      ? {} extends TArgs
+        ? [args?: TArgs]
+        : [args: TArgs]
+      : never
+  ): RouteRequest<InferRouteResponse<T>>
 
   $args: RouteArgs<T, P>
   $response: InferRouteResponse<T>

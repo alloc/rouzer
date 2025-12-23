@@ -2,8 +2,8 @@ import { RoutePattern } from '@remix-run/route-pattern'
 import { mapEntries } from './common.js'
 import type {
   RouteArgs,
-  RouteFunction,
   RouteRequest,
+  RouteRequestFactory,
   RouteSchema,
   RouteSchemaMap,
   Unchecked,
@@ -20,7 +20,7 @@ export type Route<
   path: RoutePattern<P>
   methods: T
 } & {
-  [K in keyof T]: RouteFunction<Extract<T[K], RouteSchema>, P>
+  [K in keyof T]: RouteRequestFactory<Extract<T[K], RouteSchema>, P>
 }
 
 export function route<P extends string, T extends RouteSchemaMap>(
