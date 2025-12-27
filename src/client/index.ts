@@ -39,6 +39,7 @@ export function createClient<
   onJsonError?: (response: Response) => Promisable<Response>
 }) {
   const baseURL = config.baseURL.replace(/\/$/, '')
+  const defaultHeaders = config.headers && shake(config.headers)
 
   async function request<T extends RouteRequest>({
     path: pathBuilder,
@@ -72,10 +73,10 @@ export function createClient<
       throw new Error('Unexpected body')
     }
 
-    if (config.headers || headers) {
-      headers = {
-        ...config.headers,
-        ...(headers && shake(headers)),
+    if (headers) {
+      headers = shake(headers)
+      if (defaultHeaders) {
+        headers = { ...defaultHeaders, ...headers }
       }
     }
 
@@ -86,7 +87,7 @@ export function createClient<
     return fetch(url, {
       method,
       body: body !== undefined ? JSON.stringify(body) : undefined,
-      headers: headers as HeadersInit,
+      headers: (headers ?? defaultHeaders) as HeadersInit,
     }) as Promise<Response & { json(): Promise<T['$result']> }>
   }
 
