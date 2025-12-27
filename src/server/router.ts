@@ -104,6 +104,11 @@ interface CreateRouterConfig<
   middlewares?: TMiddleware
 }
 
+export type Router<
+  TRoutes extends Routes,
+  TMiddleware extends MiddlewareChain = EmptyMiddlewareChain,
+> = ReturnType<typeof createRouter<TRoutes, TMiddleware>>
+
 export function createRouter<
   TRoutes extends Routes,
   TMiddleware extends MiddlewareChain = EmptyMiddlewareChain,
