@@ -62,7 +62,7 @@ export function createClient<
 
     if (schema.query) {
       query = schema.query.parse(query ?? {})
-      url.search = new URLSearchParams(query).toString()
+      url.search = new URLSearchParams(shake(query)).toString()
     } else if (query) {
       throw new Error('Unexpected query parameters')
     }
