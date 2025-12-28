@@ -366,6 +366,10 @@ const seen = new WeakMap<z.ZodMiniType<any, any>, z.ZodMiniType<any, any>>()
  * value as a number or boolean.
  */
 function enableStringParsing(schema: z.ZodMiniType<any, any>): typeof schema {
+  if (schema.type === 'optional') {
+    const { innerType } = (schema as z.ZodMiniOptional<any>).def
+    return z.optional(enableStringParsing(innerType))
+  }
   if (schema.type === 'number') {
     return z.pipe(z.transform(Number), schema)
   }
@@ -377,16 +381,14 @@ function enableStringParsing(schema: z.ZodMiniType<any, any>): typeof schema {
     if (cached) {
       return cached
     }
-    const modified = z.object(
-      mapValues((schema as z.ZodMiniObject<any>).def.shape, enableStringParsing)
-    )
+    const { shape } = (schema as z.ZodMiniObject<any>).def
+    const modified = z.object(mapValues(shape, enableStringParsing))
     seen.set(schema, modified)
     return modified
   }
   if (schema.type === 'array') {
-    return z.array(
-      enableStringParsing((schema as z.ZodMiniArray<any>).def.element)
-    )
+    const { element } = (schema as z.ZodMiniArray<any>).def
+    return z.array(enableStringParsing(element))
   }
   return schema
 }
