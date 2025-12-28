@@ -10,8 +10,10 @@ import type {
 } from './types.js'
 
 export function $type<T>() {
-  return null as unknown as Unchecked<T>
+  return $type.symbol as unknown as Unchecked<T>
 }
+
+$type.symbol = Symbol()
 
 export type Route<
   P extends string = string,
