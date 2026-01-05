@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "include": ["./"],
+  "compilerOptions": {
+    "paths": {
+      "rouzer": ["../src/index.ts"]
+    },
+    "types": ["vitest/globals", "vite/client"]
+  }
+}
