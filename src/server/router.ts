@@ -365,30 +365,33 @@ const seen = new WeakMap<z.ZodMiniType<any, any>, z.ZodMiniType<any, any>>()
  * boolean, and replace those schemas with a new schema that parses the input
  * value as a number or boolean.
  */
-function enableStringParsing(schema: z.ZodMiniType<any, any>): typeof schema {
+function enableStringParsing(schema: z.ZodMiniType): typeof schema {
   if (schema.type === 'optional') {
-    const { innerType } = (schema as z.ZodMiniOptional<any>).def
-    return z.optional(enableStringParsing(innerType))
+    const { def } = schema as z.ZodMiniOptional<z.ZodMiniType>
+    return z.optional(enableStringParsing(def.innerType))
   }
   if (schema.type === 'number') {
-    return z.pipe(z.transform(Number), schema)
+    return z.pipe(z.transform(Number), schema as z.ZodMiniNumber<number>)
   }
   if (schema.type === 'boolean') {
-    return z.pipe(z.transform(toBooleanStrict), schema)
+    return z.pipe(
+      z.transform(toBooleanStrict),
+      schema as z.ZodMiniBoolean<boolean>
+    )
   }
   if (schema.type === 'object') {
-    const cached = seen.get(schema)
-    if (cached) {
-      return cached
+    const cachedSchema = seen.get(schema)
+    if (cachedSchema) {
+      return cachedSchema
     }
-    const { shape } = (schema as z.ZodMiniObject<any>).def
-    const modified = z.object(mapValues(shape, enableStringParsing))
-    seen.set(schema, modified)
-    return modified
+    const { def } = schema as z.ZodMiniObject<Record<string, z.ZodMiniType>>
+    const newSchema = z.object(mapValues(def.shape, enableStringParsing))
+    seen.set(schema, newSchema)
+    return newSchema
   }
   if (schema.type === 'array') {
-    const { element } = (schema as z.ZodMiniArray<any>).def
-    return z.array(enableStringParsing(element))
+    const { def } = schema as z.ZodMiniArray<z.ZodMiniType>
+    return z.array(enableStringParsing(def.element))
   }
   return schema
 }
