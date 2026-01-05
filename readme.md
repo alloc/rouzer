@@ -129,6 +129,19 @@ const response = await client.request(
 const { message } = await response.json()
 ```
 
+### Custom fetch
+
+You can also pass a custom fetch implementation:
+
+```ts
+const client = createClient({
+  baseURL: '/api/',
+  fetch: myFetch,
+})
+```
+
+### Shorthand route methods
+
 Optionally pass your routes map to `createClient` to get per-route methods on the client:
 
 ```ts
@@ -136,8 +149,13 @@ import * as routes from './routes'
 
 const client = createClient({
   baseURL: '/api/',
-  routes,
+  routes, // <–– Pass the routes
 })
+
+// Shorthand methods now available:
+await client.fooRoute.GET()
+// …same as the longhand:
+await client.json(routes.fooRoute.GET())
 ```
 
 Routes that define a `response` type will call `client.json()` under the hood and return the parsed value; routes without one return the raw `Response`:
