@@ -61,7 +61,7 @@ export function createClient<
     const href = pathBuilder.href(path)
     if (href[0] === '/') {
       url = new URL(baseURL)
-      url.pathname += pathBuilder.href(path)
+      url.pathname += href.slice(1)
     } else {
       url = new URL(href)
     }
