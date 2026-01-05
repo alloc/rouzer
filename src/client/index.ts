@@ -98,8 +98,18 @@ export function createClient<
 
   async function json<T extends RouteRequest>(props: T): Promise<T['$result']> {
     const response = await request(props)
-    if (!response.ok && config.onJsonError) {
-      return config.onJsonError(response)
+    if (!response.ok) {
+      if (config.onJsonError) {
+        return config.onJsonError(response)
+      }
+      const error = new Error(
+        `Request to ${props.method} ${props.path.href(props.args.path)} failed with status ${response.status}`
+      )
+      const contentType = response.headers.get('content-type')
+      if (contentType?.includes('application/json')) {
+        Object.assign(error, await response.json())
+      }
+      throw error
     }
     return response.json()
   }
