@@ -37,9 +37,14 @@ export function createClient<
    * response is always parsed as JSON, regardless of the HTTP status code.
    */
   onJsonError?: (response: Response) => Promisable<Response>
+  /**
+   * Custom fetch implementation to use for requests.
+   */
+  fetch?: typeof globalThis.fetch
 }) {
   const baseURL = config.baseURL.replace(/\/$/, '')
   const defaultHeaders = config.headers && shake(config.headers)
+  const fetch = config.fetch ?? globalThis.fetch
 
   async function request<T extends RouteRequest>({
     path: pathBuilder,
