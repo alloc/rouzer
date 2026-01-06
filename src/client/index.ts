@@ -42,7 +42,7 @@ export function createClient<
    */
   fetch?: typeof globalThis.fetch
 }) {
-  const baseURL = config.baseURL.replace(/\/$/, '')
+  const baseURL = config.baseURL.replace(/\/?$/, '/')
   const defaultHeaders = config.headers && shake(config.headers)
   const fetch = config.fetch ?? globalThis.fetch
 
