@@ -1,8 +1,9 @@
 {
   "extends": "../tsconfig.json",
   "include": ["./"],
-  "exclude": [],
   "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
     "paths": {
       "rouzer": ["../src/index.ts"]
     },
