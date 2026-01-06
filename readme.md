@@ -26,8 +26,6 @@ export const helloRoute = route('hello/:name', {
     response: $type<{ message: string }>(),
   },
 })
-
-export const routes = { helloRoute }
 ```
 
 The following request parts can be validated with Zod:
