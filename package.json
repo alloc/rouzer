@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsgo -b tsconfig.json",
-    "test": "vitest",
+    "test": "vitest run",
     "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
