@@ -27,6 +27,11 @@ export type RouteSchemaMap = {
   PUT?: MutationRouteSchema
   PATCH?: MutationRouteSchema
   DELETE?: MutationRouteSchema
+  ALL?: {
+    path?: z.ZodMiniObject<any>
+    query?: z.ZodMiniObject<any>
+    headers?: z.ZodMiniObject<any>
+  }
 }
 
 export type Method = string & keyof RouteSchemaMap
