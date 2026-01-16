@@ -214,11 +214,17 @@ export interface Router<T extends MiddlewareTypes = any>
   ): Router<T>
 }
 
-export function createRouter(config: RouterConfig = {}): Router {
+export function createRouter<
+  TEnv extends object = {},
+  TProperties extends object = {},
+  TPlatform = unknown,
+>(
+  config: RouterConfig = {}
+): Router<MiddlewareTypes<TEnv, TProperties, TPlatform>> {
   const router = new RouterObject(config)
   const handler = router.toHandler()
   Object.setPrototypeOf(handler, router)
-  return handler
+  return handler as any
 }
 
 function httpClientError(
