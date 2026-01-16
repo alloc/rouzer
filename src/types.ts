@@ -30,7 +30,9 @@ export type RouteSchemaMap = {
   ALL?: {
     path?: z.ZodMiniObject<any>
     query?: z.ZodMiniObject<any>
+    body?: never
     headers?: z.ZodMiniObject<any>
+    response?: never
   }
 }
 
