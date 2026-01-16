@@ -62,25 +62,25 @@ const middlewares = chain().use(ctx => {
 })
 
 export const handler = createRouter({
-  routes,
-  middlewares,
   debug: process.env.NODE_ENV === 'development',
-})({
-  helloRoute: {
-    GET(ctx) {
-      const message = `Hello, ${ctx.path.name}${ctx.query.excited ? '!' : '.'}`
-      return { message }
-    },
-  },
 })
+  .use(middlewares)
+  .use(routes, {
+    helloRoute: {
+      GET(ctx) {
+        const message = `Hello, ${ctx.path.name}${
+          ctx.query.excited ? '!' : '.'
+        }`
+        return { message }
+      },
+    },
+  })
 ```
 
 ## Router options
 
 ```ts
 export const handler = createRouter({
-  routes,
-  middlewares,
   basePath: 'api/',
   cors: {
     allowOrigins: [
@@ -90,7 +90,7 @@ export const handler = createRouter({
     ],
   },
   debug: process.env.NODE_ENV === 'development',
-})({
+}).use(routes, {
   helloRoute: {
     GET(ctx) {
       const message = `Hello, ${ctx.path.name}${ctx.query.excited ? '!' : '.'}`
@@ -171,6 +171,6 @@ const pingText = await pingResponse.text()
 
 ## Add an endpoint
 
-1. Declare it in `routes.ts` with `route(...)` and `zod/mini` schemas.
-2. Implement the handler in your router assembly with `createRouter(…)({ ... })`.
+1. Declare it in `routes.ts` with `route(…)` and `zod/mini` schemas.
+2. Implement the handler in your router assembly with `createRouter(…).use(routes, { … })`.
 3. Call it from the client with the generated helper via `client.json` or `client.request`.

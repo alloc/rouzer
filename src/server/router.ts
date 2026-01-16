@@ -1,35 +1,19 @@
-import type { AdapterRequestContext } from '@hattip/core'
-import { RoutePattern, type Params } from '@remix-run/route-pattern'
+import type { AdapterRequestContext, HattipHandler } from '@hattip/core'
+import { RoutePattern } from '@remix-run/route-pattern'
 import {
+  ApplyMiddleware,
   chain,
+  ExtractMiddleware,
+  HattipContext,
   MiddlewareChain,
-  type HattipContext,
-  type MiddlewareContext,
+  MiddlewareTypes,
 } from 'alien-middleware'
 import * as z from 'zod/mini'
 import { mapValues } from '../common.js'
-import type {
-  InferRouteResponse,
-  Method,
-  MutationRouteSchema,
-  Promisable,
-  QueryRouteSchema,
-  Routes,
-} from '../types.js'
+import type { Method, Routes } from '../types.js'
+import type { RouteRequestHandlerMap } from './types.js'
 
 export { chain }
-
-type EmptyMiddlewareChain<TPlatform = unknown> = MiddlewareChain<{
-  initial: {
-    env: {}
-    properties: {}
-  }
-  current: {
-    env: {}
-    properties: {}
-  }
-  platform: TPlatform
-}>
 
 export type RouterConfig = {
   /**
@@ -40,33 +24,6 @@ export type RouterConfig = {
    * ```
    */
   basePath?: string
-  /**
-   * Routes to match.
-   * @example
-   * ```ts
-   * // This namespace contains your `route()` declarations.
-   * // Pass it to the `createRouter` function.
-   * import * as routes from './routes'
-   *
-   * createRouter({ routes })({
-   *   // your route handlers...
-   * })
-   * ```
-   */
-  routes: Routes
-  /**
-   * Middleware to apply to all routes.
-   * @see https://github.com/alien-rpc/alien-middleware#quick-start
-   * @example
-   * ```ts
-   * middlewares: chain().use(ctx => {
-   *   return {
-   *     db: postgres(ctx.env('POSTGRES_URL')),
-   *   }
-   * }),
-   * ```
-   */
-  middlewares?: MiddlewareChain
   /**
    * Enable debugging features.
    * - When a handler throws an error, include its message in the response body.
@@ -96,96 +53,39 @@ export type RouterConfig = {
   }
 }
 
-interface CreateRouterConfig<
-  TRoutes extends Routes,
-  TMiddleware extends MiddlewareChain,
-> extends RouterConfig {
-  routes: TRoutes
-  middlewares?: TMiddleware
-}
+// Internal prototype for the router instance.
+class RouterObject extends MiddlewareChain {
+  basePath: string | undefined
+  allowOrigins: (RegExp | ExactPattern)[] | undefined
 
-export type Router<
-  TRoutes extends Routes,
-  TMiddleware extends MiddlewareChain = EmptyMiddlewareChain,
-> = ReturnType<typeof createRouter<TRoutes, TMiddleware>>
-
-export function createRouter<
-  TRoutes extends Routes,
-  TMiddleware extends MiddlewareChain = EmptyMiddlewareChain,
->(config: CreateRouterConfig<TRoutes, TMiddleware>) {
-  const keys = Object.keys(config.routes)
-  const middlewares = config.middlewares ?? (chain() as TMiddleware)
-
-  const basePath = config.basePath?.replace(/\/?$/, '/')
-  const patterns = mapValues(config.routes, ({ path }) =>
-    basePath ? new RoutePattern(path.source.replace(/^\/?/, basePath)) : path
-  )
-
-  const allowOrigins = config.cors?.allowOrigins?.map(origin => {
-    if (!origin.includes('//')) {
-      origin = `https://${origin}`
-    }
-    if (origin.includes('*')) {
-      return new RegExp(
-        `^${
-          origin
-            .replace(/\./g, '\\.')
-            .replace(/\*:/g, '[^:]+:') // Wildcard protocol
-            .replace(/\*\./g, '([^/]+\\.)?') // Wildcard subdomain
-        }$`
-      )
-    }
-    return new ExactPattern(origin)
-  })
-
-  type RequestContext = MiddlewareContext<TMiddleware>
-
-  type RequestHandler<TArgs extends object, TResult> = (
-    context: RequestContext & TArgs
-  ) => Promisable<TResult | Response>
-
-  type InferRequestHandler<T, P extends string> = T extends QueryRouteSchema
-    ? RequestHandler<
-        {
-          path: T extends { path: any } ? z.infer<T['path']> : Params<P>
-          query: T extends { query: any } ? z.infer<T['query']> : undefined
-          headers: T extends { headers: any }
-            ? z.infer<T['headers']>
-            : undefined
-        },
-        InferRouteResponse<T>
-      >
-    : T extends MutationRouteSchema
-      ? RequestHandler<
-          {
-            path: T extends { path: any } ? z.infer<T['path']> : Params<P>
-            body: T extends { body: any } ? z.infer<T['body']> : undefined
-            headers: T extends { headers: any }
-              ? z.infer<T['headers']>
-              : undefined
-          },
-          InferRouteResponse<T>
-        >
-      : never
-
-  type RequestHandlers = {
-    [K in keyof TRoutes]: {
-      [M in keyof TRoutes[K]['methods']]: InferRequestHandler<
-        TRoutes[K]['methods'][M],
-        TRoutes[K]['path']['source']
-      >
-    }
+  constructor(readonly config: RouterConfig) {
+    super()
+    this.basePath = config.basePath?.replace(/\/?$/, '/')
+    this.allowOrigins = config.cors?.allowOrigins?.map(createOriginPattern)
   }
 
-  type TPlatform =
-    TMiddleware extends MiddlewareChain<infer T> ? T['platform'] : never
+  use(
+    ...args:
+      | [Routes, RouteRequestHandlerMap]
+      | Parameters<MiddlewareChain['use']>
+  ): any {
+    const handler =
+      args.length === 1 ? super.use(args[0]) : this.useRoutes(...args)
+    Object.setPrototypeOf(handler, this)
+    return handler
+  }
 
-  return (handlers: RequestHandlers) =>
-    middlewares.use(async function (
-      context: HattipContext<TPlatform, any> & {
-        url?: URL
-        path?: {}
-      }
+  /** @internal */
+  private useRoutes(routes: Routes, handlers: RouteRequestHandlerMap) {
+    const { config, basePath, allowOrigins } = this
+
+    const keys = Object.keys(routes)
+    const patterns = mapValues(routes, ({ path }) =>
+      basePath ? new RoutePattern(path.source.replace(/^\/?/, basePath)) : path
+    )
+
+    return super.use(async function (
+      context: HattipContext<any, any> & { url?: URL; path?: {} }
     ) {
       const request = context.request as Request
       const origin = request.headers.get('Origin')
@@ -207,7 +107,7 @@ export function createRouter<
       }
 
       for (let i = 0; i < keys.length; i++) {
-        const { methods } = config.routes[keys[i]]
+        const { methods } = routes[keys[i]]
 
         const route = methods[method as Method] || methods.ALL
         if (!route) {
@@ -219,8 +119,8 @@ export function createRouter<
           continue
         }
 
-        const handler = handlers[keys[i]][method as Method]
-        if (!handler) {
+        const routeHandler = handlers[keys[i]][method as Method]
+        if (!routeHandler) {
           if (config.debug) {
             throw new Error(`Handler not found for route: ${keys[i]} ${method}`)
           }
@@ -282,13 +182,43 @@ export function createRouter<
           }
         }
 
-        const result = await handler(context as any)
+        const result = await routeHandler(context as any)
         if (result instanceof Response) {
           return result
         }
         return Response.json(result)
       }
     })
+  }
+}
+
+export interface Router<T extends MiddlewareTypes = any>
+  extends HattipHandler<T['platform']>, MiddlewareChain<T> {
+  /**
+   * Clone this router and add the given middleware to the end of the chain.
+   *
+   * @returns a new `Router` instance.
+   */
+  use<const TMiddleware extends ExtractMiddleware<this>>(
+    middleware: TMiddleware
+  ): Router<ApplyMiddleware<this, TMiddleware>>
+
+  /**
+   * Clone this router and add the given routes and handlers to the chain.
+   *
+   * @returns a new `Router` instance.
+   */
+  use<TRoutes extends Routes>(
+    routes: TRoutes,
+    handlers: RouteRequestHandlerMap<TRoutes, this>
+  ): Router<T>
+}
+
+export function createRouter(config: RouterConfig = {}): Router {
+  const router = new RouterObject(config)
+  const handler = router.toHandler()
+  Object.setPrototypeOf(handler, router)
+  return handler
 }
 
 function httpClientError(
@@ -407,4 +337,21 @@ class ExactPattern {
   test(input: string) {
     return input === this.value
   }
+}
+
+function createOriginPattern(origin: string) {
+  if (!origin.includes('//')) {
+    origin = `https://${origin}`
+  }
+  if (origin.includes('*')) {
+    return new RegExp(
+      `^${
+        origin
+          .replace(/\./g, '\\.')
+          .replace(/\*:/g, '[^:]+:') // Wildcard protocol
+          .replace(/\*\./g, '([^/]+\\.)?') // Wildcard subdomain
+      }$`
+    )
+  }
+  return new ExactPattern(origin)
 }

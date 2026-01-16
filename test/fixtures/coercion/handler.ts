@@ -1,7 +1,7 @@
 import { createRouter } from 'rouzer'
 import * as routes from './routes.js'
 
-export default createRouter({ routes })({
+export default createRouter().use(routes, {
   coercionRoute: {
     GET(ctx) {
       return {
