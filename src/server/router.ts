@@ -200,7 +200,7 @@ export interface Router<T extends MiddlewareTypes = any>
    * @returns a new `Router` instance.
    */
   use<const TMiddleware extends ExtractMiddleware<this>>(
-    middleware: TMiddleware
+    middleware: TMiddleware | null
   ): Router<ApplyMiddleware<this, TMiddleware>>
 
   /**
