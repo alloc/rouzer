@@ -4,9 +4,9 @@ import {
   ApplyMiddleware,
   chain,
   ExtractMiddleware,
-  HattipContext,
   MiddlewareChain,
   MiddlewareTypes,
+  RequestContext,
 } from 'alien-middleware'
 import * as z from 'zod/mini'
 import { mapValues } from '../common.js'
@@ -56,12 +56,24 @@ export type RouterConfig = {
 // Internal prototype for the router instance.
 class RouterObject extends MiddlewareChain {
   basePath: string | undefined
-  allowOrigins: (RegExp | ExactPattern)[] | undefined
 
   constructor(readonly config: RouterConfig) {
     super()
     this.basePath = config.basePath?.replace(/\/?$/, '/')
-    this.allowOrigins = config.cors?.allowOrigins?.map(createOriginPattern)
+
+    const allowOrigins = config.cors?.allowOrigins?.map(createOriginPattern)
+    if (allowOrigins) {
+      super.use((ctx: RequestContext) => {
+        const origin = ctx.request.headers.get('Origin')
+        if (
+          origin &&
+          allowOrigins &&
+          !allowOrigins.some(pattern => pattern.test(origin))
+        ) {
+          return new Response(null, { status: 403 })
+        }
+      })
+    }
   }
 
   use(
@@ -77,7 +89,7 @@ class RouterObject extends MiddlewareChain {
 
   /** @internal */
   private useRoutes(routes: Routes, handlers: RouteRequestHandlerMap) {
-    const { config, basePath, allowOrigins } = this
+    const { config, basePath } = this
 
     const keys = Object.keys(routes)
     const patterns = mapValues(routes, ({ path }) =>
@@ -89,14 +101,6 @@ class RouterObject extends MiddlewareChain {
     ) {
       const request = context.request as Request
       const origin = request.headers.get('Origin')
-      if (
-        origin &&
-        allowOrigins &&
-        !allowOrigins.some(pattern => pattern.test(origin))
-      ) {
-        return new Response(null, { status: 403 })
-      }
-
       const url: URL = (context.url ??= new URL(request.url))
 
       let method = request.method.toUpperCase()
