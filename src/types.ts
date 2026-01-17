@@ -49,25 +49,25 @@ declare class Any {
 
 type PathArgs<T, P extends string> = T extends { path: infer TPath }
   ? {} extends z.infer<TPath>
-    ? { path?: z.infer<TPath> }
-    : { path: z.infer<TPath> }
+    ? { [K in keyof T as 'path']?: z.infer<TPath> }
+    : { [K in keyof T as 'path']: z.infer<TPath> }
   : Params<P> extends infer TParams
     ? {} extends TParams
-      ? { path?: TParams }
-      : { path: TParams }
+      ? { [K in keyof T as 'path']?: TParams }
+      : { [K in keyof T as 'path']: TParams }
     : unknown
 
 type QueryArgs<T> = T extends QueryRouteSchema & { query: infer TQuery }
   ? {} extends z.infer<TQuery>
-    ? { query?: z.infer<TQuery> }
-    : { query: z.infer<TQuery> }
+    ? { [K in keyof T as 'query']?: z.infer<TQuery> }
+    : { [K in keyof T as 'query']: z.infer<TQuery> }
   : unknown
 
 type MutationArgs<T> = T extends MutationRouteSchema
   ? T extends { body: infer TBody }
     ? {} extends z.infer<TBody>
-      ? { body?: z.infer<TBody> }
-      : { body: z.infer<TBody> }
+      ? { [K in keyof T as 'body']?: z.infer<TBody> }
+      : { [K in keyof T as 'body']: z.infer<TBody> }
     : { body?: unknown }
   : unknown
 
