@@ -136,7 +136,7 @@ class RouterObject extends MiddlewareChain {
         if (isPreflight) {
           return new Response(null, {
             headers: {
-              'Access-Control-Allow-Origin': origin ?? '*',
+              'Access-Control-Allow-Origin': origin ?? '',
               'Access-Control-Allow-Methods': method,
               'Access-Control-Allow-Headers':
                 request.headers.get('Access-Control-Request-Headers') ?? '',
