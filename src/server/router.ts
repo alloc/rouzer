@@ -127,9 +127,6 @@ class RouterObject extends MiddlewareChain {
 
         const routeHandler = handlers[keys[i]][method as Method]
         if (!routeHandler) {
-          if (config.debug) {
-            throw new Error(`Handler not found for route: ${keys[i]} ${method}`)
-          }
           continue
         }
 
