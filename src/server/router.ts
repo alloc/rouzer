@@ -97,17 +97,19 @@ class RouterObject extends MiddlewareChain {
     )
 
     return super.use(async function (
-      context: HattipContext<any, any> & { url?: URL; path?: {} }
+      context: RequestContext & { url?: URL; path?: {} }
     ) {
       const request = context.request as Request
       const origin = request.headers.get('Origin')
-      const url: URL = (context.url ??= new URL(request.url))
+      const url = (context.url ??= new URL(request.url))
 
-      let method = request.method.toUpperCase()
       let isPreflight = false
+      let method = request.method
       if (method === 'OPTIONS') {
-        method = request.headers.get('Access-Control-Request-Method') ?? 'GET'
         isPreflight = true
+        method =
+          request.headers.get('Access-Control-Request-Method')?.toUpperCase() ??
+          'GET'
       }
 
       for (let i = 0; i < keys.length; i++) {
