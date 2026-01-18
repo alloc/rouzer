@@ -10,7 +10,7 @@ import {
 } from 'alien-middleware'
 import * as z from 'zod/mini'
 import { mapValues } from '../common.js'
-import type { Method, Routes } from '../types.js'
+import type { Routes, RouteSchemaMap } from '../types.js'
 import type { RouteRequestHandlerMap } from './types.js'
 
 export { chain }
@@ -125,7 +125,9 @@ class RouterObject extends MiddlewareChain {
       }
 
       for (const route of routes) {
-        const props = route.methods[method as Method] ?? route.methods.ALL
+        const props = route.methods.hasOwnProperty(method)
+          ? route.methods[method as keyof RouteSchemaMap]
+          : route.methods.ALL
         if (!props) {
           continue
         }

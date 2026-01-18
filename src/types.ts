@@ -36,7 +36,6 @@ export type RouteSchemaMap = {
   }
 }
 
-export type Method = string & keyof RouteSchemaMap
 export type RouteSchema = QueryRouteSchema | MutationRouteSchema
 
 export type Routes = {
