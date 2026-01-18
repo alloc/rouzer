@@ -62,5 +62,7 @@ export type RouteRequestHandlerMap<
       TRoutes[K]['methods'][M],
       TRoutes[K]['path']['source']
     >
+  } & {
+    OPTIONS?: RouteRequestHandler<TMiddleware, {}, void>
   }
 }

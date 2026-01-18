@@ -141,6 +141,13 @@ class RouterObject extends MiddlewareChain {
         }
 
         if (isPreflight) {
+          const optionsHandler = handlers[route.name].OPTIONS
+          if (optionsHandler) {
+            const response = await optionsHandler(context)
+            if (response) {
+              return response
+            }
+          }
           return new Response(null, {
             headers: {
               'Access-Control-Allow-Origin': origin ?? '',
