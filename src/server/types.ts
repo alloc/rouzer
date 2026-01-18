@@ -7,10 +7,9 @@ import type {
 import type * as z from 'zod/mini'
 import type {
   InferRouteResponse,
-  MutationRouteSchema,
   Promisable,
-  QueryRouteSchema,
   Routes,
+  RouteSchema,
 } from '../types.js'
 
 type RequestContext<TMiddleware extends AnyMiddlewareChain> =
@@ -26,43 +25,59 @@ type RouteRequestHandler<
 
 type InferRouteRequestHandler<
   TMiddleware extends AnyMiddlewareChain,
-  T,
-  P extends string,
-> = T extends QueryRouteSchema
+  TSchema extends RouteSchema,
+  TMethod extends string,
+  TPath extends string,
+> = TMethod extends 'GET'
   ? RouteRequestHandler<
       TMiddleware,
       {
-        path: T extends { path: any } ? z.infer<T['path']> : Params<P>
-        query: T extends { query: any } ? z.infer<T['query']> : undefined
-        headers: T extends { headers: any } ? z.infer<T['headers']> : undefined
+        path: TSchema extends { path: any }
+          ? z.infer<TSchema['path']>
+          : Params<TPath>
+        query: TSchema extends { query: any }
+          ? z.infer<TSchema['query']>
+          : undefined
+        headers: TSchema extends { headers: any }
+          ? z.infer<TSchema['headers']>
+          : undefined
       },
-      InferRouteResponse<T>
+      InferRouteResponse<TSchema>
     >
-  : T extends MutationRouteSchema
-    ? RouteRequestHandler<
-        TMiddleware,
-        {
-          path: T extends { path: any } ? z.infer<T['path']> : Params<P>
-          body: T extends { body: any } ? z.infer<T['body']> : undefined
-          headers: T extends { headers: any }
-            ? z.infer<T['headers']>
-            : undefined
-        },
-        InferRouteResponse<T>
-      >
-    : never
+  : RouteRequestHandler<
+      TMiddleware,
+      {
+        path: TSchema extends { path: any }
+          ? z.infer<TSchema['path']>
+          : Params<TPath>
+        body: TSchema extends { body: any }
+          ? z.infer<TSchema['body']>
+          : undefined
+        headers: TSchema extends { headers: any }
+          ? z.infer<TSchema['headers']>
+          : undefined
+      },
+      InferRouteResponse<TSchema>
+    >
 
 export type RouteRequestHandlerMap<
   TRoutes extends Routes = Routes,
   TMiddleware extends AnyMiddlewareChain = MiddlewareChain,
 > = {
   [K in keyof TRoutes]: {
-    [M in keyof TRoutes[K]['methods']]: InferRouteRequestHandler<
+    [TMethod in keyof TRoutes[K]['methods']]: InferRouteRequestHandler<
       TMiddleware,
-      TRoutes[K]['methods'][M],
+      Extract<TRoutes[K]['methods'][TMethod], RouteSchema>,
+      Extract<TMethod, string>,
       TRoutes[K]['path']['source']
     >
   } & {
-    OPTIONS?: RouteRequestHandler<TMiddleware, {}, void>
+    OPTIONS?: RouteRequestHandler<
+      TMiddleware,
+      {
+        path: Params<TRoutes[K]['path']['source']>
+      },
+      void
+    >
   }
 }
