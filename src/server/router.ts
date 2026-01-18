@@ -108,6 +108,12 @@ class RouterObject extends MiddlewareChain {
       }),
     }))
 
+    const addDebugHeaders = config.debug
+      ? (context: RequestContext, route: { name: string }) => {
+          context.setHeader('X-Route-Name', route.name)
+        }
+      : null
+
     return super.use(async function (
       context: RequestContext & { url?: URL; path?: {} }
     ) {
@@ -171,6 +177,7 @@ class RouterObject extends MiddlewareChain {
             match.params
           )
           if (error) {
+            addDebugHeaders?.(context, route)
             return httpClientError(error, 'Invalid path parameter', config)
           }
         } else {
@@ -183,6 +190,7 @@ class RouterObject extends MiddlewareChain {
             enableStringParsing(schema.headers)
           )
           if (error) {
+            addDebugHeaders?.(context, route)
             return httpClientError(error, 'Invalid request headers', config)
           }
         }
@@ -193,6 +201,7 @@ class RouterObject extends MiddlewareChain {
             enableStringParsing(schema.query)
           )
           if (error) {
+            addDebugHeaders?.(context, route)
             return httpClientError(error, 'Invalid query string', config)
           }
         }
@@ -200,11 +209,13 @@ class RouterObject extends MiddlewareChain {
         if (schema.body) {
           const error = await parseRequestBody(context, schema.body)
           if (error) {
+            addDebugHeaders?.(context, route)
             return httpClientError(error, 'Invalid request body', config)
           }
         }
 
         const result = await handler(context)
+        addDebugHeaders?.(context, route)
         if (result instanceof Response) {
           return result
         }
