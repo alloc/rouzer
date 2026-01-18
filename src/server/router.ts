@@ -88,13 +88,25 @@ class RouterObject extends MiddlewareChain {
   }
 
   /** @internal */
-  private useRoutes(routes: Routes, handlers: RouteRequestHandlerMap) {
+  private useRoutes(routeSchemas: Routes, handlers: RouteRequestHandlerMap) {
     const { config, basePath } = this
 
-    const keys = Object.keys(routes)
-    const patterns = mapValues(routes, ({ path }) =>
-      basePath ? new RoutePattern(path.source.replace(/^\/?/, basePath)) : path
-    )
+    const routes = Object.entries(routeSchemas).map(([name, route]) => ({
+      name,
+      path: basePath
+        ? new RoutePattern(route.path.source.replace(/^\/?/, basePath))
+        : route.path,
+      methods: mapValues(route.methods, (schema, method) => {
+        const handler = handlers[name][method]
+        if (!handler && config.debug) {
+          console.error(`Handler missing for route: ${method} ${name}`)
+        }
+        return {
+          schema,
+          handler,
+        }
+      }),
+    }))
 
     return super.use(async function (
       context: RequestContext & { url?: URL; path?: {} }
@@ -112,21 +124,19 @@ class RouterObject extends MiddlewareChain {
           'GET'
       }
 
-      for (let i = 0; i < keys.length; i++) {
-        const { methods } = routes[keys[i]]
-
-        const route = methods[method as Method] || methods.ALL
-        if (!route) {
+      for (const route of routes) {
+        const props = route.methods[method as Method] ?? route.methods.ALL
+        if (!props) {
           continue
         }
 
-        const match = patterns[keys[i]].match(url)
+        const { schema, handler } = props
+        if (!handler) {
+          continue
+        }
+
+        const match = route.path.match(url)
         if (!match) {
-          continue
-        }
-
-        const routeHandler = handlers[keys[i]][method as Method]
-        if (!routeHandler) {
           continue
         }
 
@@ -145,10 +155,10 @@ class RouterObject extends MiddlewareChain {
           context.setHeader('Access-Control-Allow-Origin', origin)
         }
 
-        if (route.path) {
+        if (schema.path) {
           const error = parsePathParams(
             context,
-            enableStringParsing(route.path),
+            enableStringParsing(schema.path),
             match.params
           )
           if (error) {
@@ -158,34 +168,34 @@ class RouterObject extends MiddlewareChain {
           context.path = match.params
         }
 
-        if (route.headers) {
+        if (schema.headers) {
           const error = parseHeaders(
             context,
-            enableStringParsing(route.headers)
+            enableStringParsing(schema.headers)
           )
           if (error) {
             return httpClientError(error, 'Invalid request headers', config)
           }
         }
 
-        if (route.query) {
+        if (schema.query) {
           const error = parseQueryString(
             context,
-            enableStringParsing(route.query)
+            enableStringParsing(schema.query)
           )
           if (error) {
             return httpClientError(error, 'Invalid query string', config)
           }
         }
 
-        if (route.body) {
-          const error = await parseRequestBody(context, route.body)
+        if (schema.body) {
+          const error = await parseRequestBody(context, schema.body)
           if (error) {
             return httpClientError(error, 'Invalid request body', config)
           }
         }
 
-        const result = await routeHandler(context as any)
+        const result = await handler(context)
         if (result instanceof Response) {
           return result
         }
