@@ -11,9 +11,8 @@ export default {
       fetch,
     })
 
-    await expect(
-      queryClient.queryRoute.GET({ query: { q: 'x' } })
-    ).rejects.toMatchInlineSnapshot(`
+    await expect(queryClient.queryRoute.GET({ query: { q: 'x' } })).rejects
+      .toMatchInlineSnapshot(`
       [$ZodError: [
         {
           "origin": "string",
@@ -36,9 +35,8 @@ export default {
       fetch,
     })
 
-    await expect(
-      bodyClient.bodyRoute.POST({ body: { count: -1 } })
-    ).rejects.toMatchInlineSnapshot(`
+    await expect(bodyClient.bodyRoute.POST({ body: { count: -1 } })).rejects
+      .toMatchInlineSnapshot(`
       [$ZodError: [
         {
           "origin": "number",

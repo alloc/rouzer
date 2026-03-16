@@ -5,12 +5,8 @@ import type {
   MiddlewareContext,
 } from 'alien-middleware'
 import type * as z from 'zod/mini'
-import type {
-  InferRouteResponse,
-  Promisable,
-  Routes,
-  RouteSchema,
-} from '../types.js'
+import { Promisable } from '../common.js'
+import type { InferRouteResponse, Routes, RouteSchema } from '../types.js'
 
 type RequestContext<TMiddleware extends AnyMiddlewareChain> =
   MiddlewareContext<TMiddleware>

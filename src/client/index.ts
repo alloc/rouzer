@@ -1,8 +1,7 @@
-import { mapValues, shake } from '../common.js'
+import { mapValues, Promisable, shake } from '../common.js'
 import { Route } from '../route.js'
 import type {
   InferRouteResponse,
-  Promisable,
   RouteArgs,
   RouteRequest,
   RouteSchema,

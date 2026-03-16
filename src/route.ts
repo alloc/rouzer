@@ -1,12 +1,11 @@
 import { RoutePattern } from '@remix-run/route-pattern'
-import { mapEntries } from './common.js'
+import { mapEntries, Unchecked } from './common.js'
 import type {
   RouteArgs,
   RouteRequest,
   RouteRequestFactory,
   RouteSchema,
   RouteSchemaMap,
-  Unchecked,
 } from './types.js'
 
 export function $type<T>() {

@@ -1,9 +1,6 @@
 import { Params, RoutePattern } from '@remix-run/route-pattern'
 import * as z from 'zod/mini'
-
-export type Promisable<T> = T | Promise<T>
-
-export type Unchecked<T> = { __unchecked__: T }
+import { Unchecked } from './common.js'
 
 export type QueryRouteSchema = {
   path?: z.ZodMiniObject<any>
@@ -108,11 +105,12 @@ type InferRouteArgsBody<TArgs> = TArgs extends { body?: infer TBody }
   ? TBody
   : never
 
-export type InferRouteBody<T> = T extends RouteRequestFactory<any, any>
-  ? InferRouteArgsBody<T['$args']>
-  : T extends RouteSchema
-    ? InferRouteSchemaBody<T>
-    : never
+export type InferRouteBody<T> =
+  T extends RouteRequestFactory<any, any>
+    ? InferRouteArgsBody<T['$args']>
+    : T extends RouteSchema
+      ? InferRouteSchemaBody<T>
+      : never
 
 export type InferRouteMethodBody<
   TRoute extends { methods: RouteSchemaMap },

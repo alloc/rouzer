@@ -1,3 +1,7 @@
+export type Promisable<T> = T | Promise<T>
+
+export type Unchecked<T> = { __unchecked__: T }
+
 /**
  * Map over all the keys to create a new object.
  *
