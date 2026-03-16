@@ -98,6 +98,31 @@ export type InferRouteResponse<T extends RouteSchema> = T extends {
   ? TResponse
   : void
 
+type InferRouteSchemaBody<TSchema> = TSchema extends MutationRouteSchema
+  ? TSchema extends { body: infer TBody }
+    ? z.infer<TBody>
+    : unknown
+  : never
+
+type InferRouteArgsBody<TArgs> = TArgs extends { body?: infer TBody }
+  ? TBody
+  : never
+
+export type InferRouteBody<T> = T extends RouteRequestFactory<any, any>
+  ? InferRouteArgsBody<T['$args']>
+  : T extends RouteSchema
+    ? InferRouteSchemaBody<T>
+    : never
+
+export type InferRouteMethodBody<
+  TRoute extends { methods: RouteSchemaMap },
+  TMethod extends keyof TRoute['methods'],
+> = TMethod extends 'GET' | 'ALL'
+  ? never
+  : TMethod extends keyof TRoute
+    ? InferRouteBody<TRoute[TMethod]>
+    : InferRouteBody<Extract<TRoute['methods'][TMethod], RouteSchema>>
+
 export type RouteRequestFactory<T extends RouteSchema, P extends string> = {
   (
     ...p: RouteArgs<T, P> extends infer TArgs

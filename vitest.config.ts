@@ -6,6 +6,11 @@ export default defineConfig({
     include: ['test/**/*.test.ts'],
     environment: 'node',
     globals: true,
+    typecheck: {
+      enabled: true,
+      tsconfig: 'test/type-tests.tsconfig.json',
+      include: ['test/**/*.test-d.ts'],
+    },
   },
   resolve: {
     alias: {
