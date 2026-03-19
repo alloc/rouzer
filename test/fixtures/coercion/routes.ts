@@ -1,5 +1,5 @@
 import { $type, route } from 'rouzer'
-import * as z from 'zod/mini'
+import * as z from 'zod'
 
 export const coercionRoute = route('coercion/:id', {
   GET: {

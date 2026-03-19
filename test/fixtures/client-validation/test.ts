@@ -13,7 +13,7 @@ export default {
 
     await expect(queryClient.queryRoute.GET({ query: { q: 'x' } })).rejects
       .toMatchInlineSnapshot(`
-      [$ZodError: [
+      [ZodError: [
         {
           "origin": "string",
           "code": "too_small",
@@ -22,7 +22,7 @@ export default {
           "path": [
             "q"
           ],
-          "message": "Invalid input"
+          "message": "Too small: expected string to have >=2 characters"
         }
       ]]
     `)
@@ -37,7 +37,7 @@ export default {
 
     await expect(bodyClient.bodyRoute.POST({ body: { count: -1 } })).rejects
       .toMatchInlineSnapshot(`
-      [$ZodError: [
+      [ZodError: [
         {
           "origin": "number",
           "code": "too_small",
@@ -46,7 +46,7 @@ export default {
           "path": [
             "count"
           ],
-          "message": "Invalid input"
+          "message": "Too small: expected number to be >0"
         }
       ]]
     `)

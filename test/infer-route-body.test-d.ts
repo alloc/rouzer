@@ -1,4 +1,4 @@
-import * as z from 'zod/mini'
+import * as z from 'zod'
 import type { InferRouteBody, InferRouteMethodBody } from 'rouzer'
 import { route } from 'rouzer'
 

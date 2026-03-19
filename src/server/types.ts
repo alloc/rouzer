@@ -4,7 +4,7 @@ import type {
   MiddlewareChain,
   MiddlewareContext,
 } from 'alien-middleware'
-import type * as z from 'zod/mini'
+import type * as z from 'zod'
 import { Promisable } from '../common.js'
 import type { InferRouteResponse, Routes, RouteSchema } from '../types.js'
 

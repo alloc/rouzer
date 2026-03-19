@@ -1,22 +1,22 @@
 import { Params, RoutePattern } from '@remix-run/route-pattern'
-import * as z from 'zod/mini'
+import * as z from 'zod'
 import { Unchecked } from './common.js'
 
 export type { Unchecked }
 
 export type QueryRouteSchema = {
-  path?: z.ZodMiniObject<any>
-  query?: z.ZodMiniObject<any>
+  path?: z.ZodObject<any>
+  query?: z.ZodObject<any>
   body?: never
-  headers?: z.ZodMiniObject<any>
+  headers?: z.ZodObject<any>
   response?: Unchecked<any>
 }
 
 export type MutationRouteSchema = {
-  path?: z.ZodMiniObject<any>
+  path?: z.ZodObject<any>
   query?: never
-  body?: z.ZodMiniType<any, any>
-  headers?: z.ZodMiniObject<any>
+  body?: z.ZodType<any, any>
+  headers?: z.ZodObject<any>
   response?: Unchecked<any>
 }
 
@@ -27,10 +27,10 @@ export type RouteSchemaMap = {
   PATCH?: MutationRouteSchema
   DELETE?: MutationRouteSchema
   ALL?: {
-    path?: z.ZodMiniObject<any>
-    query?: z.ZodMiniObject<any>
+    path?: z.ZodObject<any>
+    query?: z.ZodObject<any>
     body?: never
-    headers?: z.ZodMiniObject<any>
+    headers?: z.ZodObject<any>
     response?: never
   }
 }

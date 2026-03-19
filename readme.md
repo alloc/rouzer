@@ -1,6 +1,6 @@
 # rouzer
 
-Type-safe routes shared by your server and client, powered by `zod/mini` (input validation + transforms), `@remix-run/route-pattern` (URL matching), and `alien-middleware` (typed middleware chaining). The router output is intended to be used with `@hattip/core` adapters.
+Type-safe routes shared by your server and client, powered by `zod` (input validation + transforms), `@remix-run/route-pattern` (URL matching), and `alien-middleware` (typed middleware chaining). The router output is intended to be used with `@hattip/core` adapters.
 
 ## Install
 
@@ -14,7 +14,7 @@ Everything is imported directly from `rouzer`.
 
 ```ts
 // routes.ts
-import * as z from 'zod/mini'
+import * as z from 'zod'
 import { $type, route } from 'rouzer'
 
 export const helloRoute = route('hello/:name', {
@@ -171,6 +171,6 @@ const pingText = await pingResponse.text()
 
 ## Add an endpoint
 
-1. Declare it in `routes.ts` with `route(…)` and `zod/mini` schemas.
+1. Declare it in `routes.ts` with `route(…)` and `zod` schemas.
 2. Implement the handler in your router assembly with `createRouter(…).use(routes, { … })`.
 3. Call it from the client with the generated helper via `client.json` or `client.request`.

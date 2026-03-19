@@ -8,7 +8,7 @@ import {
   MiddlewareTypes,
   RequestContext,
 } from 'alien-middleware'
-import * as z from 'zod/mini'
+import * as z from 'zod'
 import { mapValues } from '../common.js'
 import type { Routes, RouteSchemaMap } from '../types.js'
 import type { RouteRequestHandlerMap } from './types.js'
@@ -276,7 +276,7 @@ function httpClientError(
 
 function parsePathParams(
   context: AdapterRequestContext & { path?: {} },
-  schema: z.ZodMiniType<any, any>,
+  schema: z.ZodType<any, any>,
   params: {}
 ) {
   const result = schema.safeParse(params)
@@ -289,7 +289,7 @@ function parsePathParams(
 
 function parseHeaders(
   context: AdapterRequestContext & { headers?: {} },
-  schema: z.ZodMiniType<any, any>
+  schema: z.ZodType<any, any>
 ) {
   const headers = Object.fromEntries(context.request.headers as any)
   const result = schema.safeParse(headers)
@@ -302,7 +302,7 @@ function parseHeaders(
 
 function parseQueryString(
   context: AdapterRequestContext & { url?: URL; query?: {} },
-  schema: z.ZodMiniType<any, any>
+  schema: z.ZodType<any, any>
 ) {
   const result = schema.safeParse(
     Object.fromEntries(context.url!.searchParams as any)
@@ -316,7 +316,7 @@ function parseQueryString(
 
 async function parseRequestBody(
   context: AdapterRequestContext & { body?: {} },
-  schema: z.ZodMiniType<any, any>
+  schema: z.ZodType<any, any>
 ) {
   const result = await context.request.json().then(
     body => schema.safeParse(body),
@@ -329,39 +329,36 @@ async function parseRequestBody(
   return null
 }
 
-const seen = new WeakMap<z.ZodMiniType<any, any>, z.ZodMiniType<any, any>>()
+const seen = new WeakMap<z.ZodType<any, any>, z.ZodType<any, any>>()
 
 /**
  * Traverse object and array schemas, finding schemas that expect a number or
  * boolean, and replace those schemas with a new schema that parses the input
  * value as a number or boolean.
  */
-function enableStringParsing(schema: z.ZodMiniType): typeof schema {
+function enableStringParsing(schema: z.ZodType): typeof schema {
   if (schema.type === 'optional') {
-    const { def } = schema as z.ZodMiniOptional<z.ZodMiniType>
+    const { def } = schema as z.ZodOptional<z.ZodType>
     return z.optional(enableStringParsing(def.innerType))
   }
   if (schema.type === 'number') {
-    return z.pipe(z.transform(Number), schema as z.ZodMiniNumber<number>)
+    return z.pipe(z.transform(Number), schema as z.ZodNumber)
   }
   if (schema.type === 'boolean') {
-    return z.pipe(
-      z.transform(toBooleanStrict),
-      schema as z.ZodMiniBoolean<boolean>
-    )
+    return z.pipe(z.transform(toBooleanStrict), schema as z.ZodBoolean)
   }
   if (schema.type === 'object') {
     const cachedSchema = seen.get(schema)
     if (cachedSchema) {
       return cachedSchema
     }
-    const { def } = schema as z.ZodMiniObject<Record<string, z.ZodMiniType>>
+    const { def } = schema as z.ZodObject<Record<string, z.ZodType>>
     const newSchema = z.object(mapValues(def.shape, enableStringParsing))
     seen.set(schema, newSchema)
     return newSchema
   }
   if (schema.type === 'array') {
-    const { def } = schema as z.ZodMiniArray<z.ZodMiniType>
+    const { def } = schema as z.ZodArray<z.ZodType>
     return z.array(enableStringParsing(def.element))
   }
   return schema
