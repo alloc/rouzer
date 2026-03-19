@@ -28,6 +28,8 @@ export const helloRoute = route('hello/:name', {
 })
 ```
 
+Supported route methods are `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, and `ALL`.
+
 The following request parts can be validated with Zod:
 
 - `path`
@@ -35,7 +37,13 @@ The following request parts can be validated with Zod:
 - `body`
 - `headers`
 
-Zod validation happens on both the server and client.
+Zod validation happens on both the server and client. Client validation runs
+before `fetch`, so invalid requests fail locally without sending a network
+request.
+
+On the server, `path`, `query`, and `headers` values are parsed from strings and
+coerced to `number` and `boolean` when the schema expects those types. Request
+`body` values are validated as JSON without this coercion step.
 
 ## Route URL patterns
 
@@ -77,6 +85,9 @@ export const handler = createRouter({
   })
 ```
 
+Handlers can either return a plain JSON-serializable value or a `Response`.
+Returning a `Response` gives you full control over status, headers, and body.
+
 ## Router options
 
 ```ts
@@ -102,8 +113,15 @@ export const handler = createRouter({
 
 - `basePath` is prepended to every route (leading/trailing slashes are trimmed).
 - CORS preflight (`OPTIONS`) is handled automatically for matched routes.
+- You can define a route-level `OPTIONS` handler to customize preflight
+  responses; if it returns nothing, Rouzer falls back to the built-in preflight
+  response.
 - `cors.allowOrigins` restricts preflight requests to a list of origins (default is to allow any origin).
   - Wildcards are supported for protocol and subdomain; the protocol is optional and defaults to `https`.
+- `debug` adds an `X-Route-Name` response header for matched routes and includes
+  more specific validation error messages in `400` responses.
+- `ALL` handlers act as a fallback when a route does not define the incoming HTTP
+  method explicitly.
 - If you rely on `Cookie` or `Authorization` request headers, you must set
   `Access-Control-Allow-Credentials` in your handler.
 
@@ -127,6 +145,21 @@ const response = await client.request(
 const { message } = await response.json()
 ```
 
+### Default headers
+
+You can attach headers to every request:
+
+```ts
+const client = createClient({
+  baseURL: '/api/',
+  headers: {
+    authorization: `Bearer ${token}`,
+  },
+})
+```
+
+Per-request headers are merged on top of these defaults.
+
 ### Custom fetch
 
 You can also pass a custom fetch implementation:
@@ -135,6 +168,25 @@ You can also pass a custom fetch implementation:
 const client = createClient({
   baseURL: '/api/',
   fetch: myFetch,
+})
+```
+
+### Custom JSON error handling
+
+By default, `client.json()` throws for non-2xx responses. If the response body
+is JSON, its properties are copied onto the thrown `Error`.
+
+You can override that behavior with `onJsonError`:
+
+```ts
+const client = createClient({
+  baseURL: '/api/',
+  onJsonError(response) {
+    if (response.status === 404) {
+      return Response.json({ message: 'not found' })
+    }
+    return response
+  },
 })
 ```
 
@@ -167,6 +219,22 @@ const { message } = await client.helloRoute.GET({
 // imagine pingRoute has no response schema; you get a Response object
 const pingResponse = await client.pingRoute.GET({})
 const pingText = await pingResponse.text()
+```
+
+### Type helpers
+
+Rouzer also exports utility types for route inference:
+
+```ts
+import type {
+  InferRouteBody,
+  InferRouteMethodBody,
+  InferRouteResponse,
+} from 'rouzer'
+
+type CreateUserBody = InferRouteBody<typeof createUserRoute.POST>
+type CreateUserBody2 = InferRouteMethodBody<typeof createUserRoute, 'POST'>
+type HelloResponse = InferRouteResponse<typeof helloRoute.methods.GET>
 ```
 
 ## Add an endpoint
