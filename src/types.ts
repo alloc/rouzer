@@ -2,6 +2,8 @@ import { Params, RoutePattern } from '@remix-run/route-pattern'
 import * as z from 'zod/mini'
 import { Unchecked } from './common.js'
 
+export type { Unchecked }
+
 export type QueryRouteSchema = {
   path?: z.ZodMiniObject<any>
   query?: z.ZodMiniObject<any>
