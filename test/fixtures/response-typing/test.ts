@@ -7,10 +7,10 @@ export default createTest({
   routes,
   handler,
   test: async client => {
-    const jsonResult = await client.jsonRoute.GET()
+    const jsonResult = await client.jsonRoute()
     expect(jsonResult).toEqual({ message: 'ok' })
 
-    const response = await client.pingRoute.GET()
+    const response = await client.pingRoute()
     expect(response).toBeInstanceOf(Response)
     expect(await response.text()).toBe('pong')
   },

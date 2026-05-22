@@ -1,6 +1,6 @@
 import * as z from 'zod'
-import type { InferRouteBody, InferRouteMethodBody } from 'rouzer'
-import { route } from 'rouzer'
+import type { InferRouteBody } from 'rouzer'
+import * as http from 'rouzer/http'
 
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
@@ -9,38 +9,24 @@ type Equal<A, B> =
 
 type Assert<T extends true> = T
 
-const createUserRoute = route('users', {
-  POST: {
-    body: z.object({
-      name: z.string(),
-    }),
-  },
+const createUser = http.post('users', {
+  body: z.object({
+    name: z.string(),
+  }),
 })
 
-type _BodyFromFactory = Assert<
-  Equal<InferRouteBody<typeof createUserRoute.POST>, { name: string }>
+type _BodyFromSchema = Assert<
+  Equal<InferRouteBody<typeof createUser.schema>, { name: string }>
 >
 
-type _BodyFromMethodContract = Assert<
-  Equal<InferRouteMethodBody<typeof createUserRoute, 'POST'>, { name: string }>
->
-
-const looseMutationRoute = route('users/loose', {
-  POST: {},
-})
+const looseMutation = http.post('users/loose', {})
 
 type _UnknownWhenBodySchemaMissing = Assert<
-  Equal<InferRouteBody<typeof looseMutationRoute.POST>, unknown>
+  Equal<InferRouteBody<typeof looseMutation.schema>, unknown>
 >
 
-const getUserRoute = route('users/:id', {
-  GET: {},
-})
+const getUser = http.get('users/:id', {})
 
-type _UnknownForStandaloneGetMethod = Assert<
-  Equal<InferRouteBody<typeof getUserRoute.GET>, unknown>
->
-
-type _NeverForGetMethodContract = Assert<
-  Equal<InferRouteMethodBody<typeof getUserRoute, 'GET'>, never>
+type _UnknownForGetActionSchema = Assert<
+  Equal<InferRouteBody<typeof getUser.schema>, unknown>
 >

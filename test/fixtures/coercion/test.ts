@@ -7,7 +7,7 @@ export default createTest({
   routes,
   handler,
   test: async client => {
-    let result = await client.coercionRoute.GET({
+    let result = await client.coercionRoute({
       path: { id: 123 },
       query: { value: 456, active: true, optionalVal: 789 },
     })
@@ -23,7 +23,7 @@ export default createTest({
     expect(typeof result.active).toBe('boolean')
     expect(typeof result.optionalVal).toBe('number')
 
-    result = await client.coercionRoute.GET({
+    result = await client.coercionRoute({
       path: { id: 123 },
       query: { value: 456, active: true },
     })

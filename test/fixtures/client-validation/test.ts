@@ -11,7 +11,7 @@ export default {
       fetch,
     })
 
-    await expect(queryClient.queryRoute.GET({ query: { q: 'x' } })).rejects
+    await expect(queryClient.queryRoute({ query: { q: 'x' } })).rejects
       .toMatchInlineSnapshot(`
       [ZodError: [
         {
@@ -35,7 +35,7 @@ export default {
       fetch,
     })
 
-    await expect(bodyClient.bodyRoute.POST({ body: { count: -1 } })).rejects
+    await expect(bodyClient.bodyRoute({ body: { count: -1 } })).rejects
       .toMatchInlineSnapshot(`
       [ZodError: [
         {
@@ -59,7 +59,7 @@ export default {
       fetch,
     })
 
-    await expect(headerClient.headerRoute.GET()).resolves.toBeInstanceOf(
+    await expect(headerClient.headerRoute()).resolves.toBeInstanceOf(
       Response
     )
     expect(fetch).toHaveBeenCalledWith(

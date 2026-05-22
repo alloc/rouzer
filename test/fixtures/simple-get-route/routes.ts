@@ -1,7 +1,6 @@
-import { $type, route } from 'rouzer'
+import { $type } from 'rouzer'
+import * as http from 'rouzer/http'
 
-export const helloRoute = route('hello/:name', {
-  GET: {
-    response: $type<{ message: string }>(),
-  },
+export const helloRoute = http.get('hello/:name', {
+  response: $type<{ message: string }>(),
 })

@@ -1,6 +1,7 @@
 import type { HattipHandler } from '@hattip/core'
 import * as z from 'zod'
-import { $type, chain, createClient, createRouter, route } from 'rouzer'
+import { $type, chain, createClient, createRouter } from 'rouzer'
+import * as http from 'rouzer/http'
 
 type Profile = {
   id: string
@@ -9,14 +10,14 @@ type Profile = {
   requestId: string
 }
 
-export const profileRoute = route('profiles/:id', {
-  GET: {
+export const profiles = http.resource('profiles/:id', {
+  get: http.get({
     query: z.object({
       includePosts: z.optional(z.boolean()),
     }),
     response: $type<Profile>(),
-  },
-  PATCH: {
+  }),
+  update: http.patch({
     body: z.object({
       name: z.string().check(z.minLength(1)),
     }),
@@ -24,10 +25,10 @@ export const profileRoute = route('profiles/:id', {
       'content-type': z.literal('application/json'),
     }),
     response: $type<Profile>(),
-  },
+  }),
 })
 
-export const routes = { profileRoute }
+export const routes = { profiles }
 
 /**
  * Tiny Hattip adapter used only to keep this example self-contained. Real apps
@@ -54,7 +55,7 @@ function createLocalFetch(handler: HattipHandler): typeof fetch {
 }
 
 export async function runBasicUsageExample() {
-  const profiles = new Map([['42', { id: '42', name: 'Ada' }]])
+  const profileMap = new Map([['42', { id: '42', name: 'Ada' }]])
 
   const requestMiddleware = chain().use(ctx => ({
     requestId: ctx.request.headers.get('x-request-id') ?? 'local',
@@ -63,9 +64,9 @@ export async function runBasicUsageExample() {
   const handler = createRouter({ basePath: 'api/' })
     .use(requestMiddleware)
     .use(routes, {
-      profileRoute: {
-        GET(ctx) {
-          const profile = profiles.get(ctx.path.id)
+      profiles: {
+        get(ctx) {
+          const profile = profileMap.get(ctx.path.id)
           if (!profile) {
             return new Response('Profile not found', { status: 404 })
           }
@@ -75,13 +76,13 @@ export async function runBasicUsageExample() {
             requestId: ctx.requestId,
           }
         },
-        PATCH(ctx) {
-          const current = profiles.get(ctx.path.id)
+        update(ctx) {
+          const current = profileMap.get(ctx.path.id)
           if (!current) {
             return new Response('Profile not found', { status: 404 })
           }
           const profile = { ...current, name: ctx.body.name }
-          profiles.set(ctx.path.id, profile)
+          profileMap.set(ctx.path.id, profile)
           return {
             ...profile,
             includePosts: false,
@@ -100,13 +101,13 @@ export async function runBasicUsageExample() {
     fetch: createLocalFetch(handler),
   })
 
-  const fetched = await client.profileRoute.GET({
+  const fetched = await client.profiles.get({
     path: { id: '42' },
     query: { includePosts: false },
     headers: { 'x-request-id': 'docs' },
   })
 
-  const updated = await client.profileRoute.PATCH({
+  const updated = await client.profiles.update({
     path: { id: '42' },
     body: { name: 'Grace' },
   })

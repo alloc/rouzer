@@ -66,16 +66,18 @@ class RouterObject extends MiddlewareChain {
 
     const allowOrigins = config.cors?.allowOrigins?.map(createOriginPattern)
     if (allowOrigins) {
-      super.use((ctx: RequestContext) => {
-        const origin = ctx.request.headers.get('Origin')
-        if (
-          origin &&
-          allowOrigins &&
-          !allowOrigins.some(pattern => pattern.test(origin))
-        ) {
-          return new Response(null, { status: 403 })
-        }
-      })
+      super.use(
+        ((ctx: RequestContext) => {
+          const origin = ctx.request.headers.get('Origin')
+          if (
+            origin &&
+            allowOrigins &&
+            !allowOrigins.some(pattern => pattern.test(origin))
+          ) {
+            return new Response(null, { status: 403 })
+          }
+        }) as any
+      )
     }
   }
 
@@ -85,7 +87,7 @@ class RouterObject extends MiddlewareChain {
       | Parameters<MiddlewareChain['use']>
   ): any {
     const handler =
-      args.length === 1 ? super.use(args[0]) : this.useRoutes(...args)
+      args.length === 1 ? super.use(args[0] as any) : this.useRoutes(...args)
     Object.setPrototypeOf(handler, this)
     return handler
   }
@@ -110,7 +112,7 @@ class RouterObject extends MiddlewareChain {
         }
       : null
 
-    return super.use(async function (
+    return super.use((async function (
       context: RequestContext & { url?: URL; path?: {} }
     ) {
       const request = context.request as Request
@@ -207,7 +209,7 @@ class RouterObject extends MiddlewareChain {
         }
         return Response.json(result)
       }
-    })
+    }) as any)
   }
 }
 

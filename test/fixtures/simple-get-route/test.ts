@@ -7,7 +7,7 @@ export default createTest({
   routes,
   handler,
   test: async client => {
-    const result = await client.helloRoute.GET({
+    const result = await client.helloRoute({
       path: { name: 'world' },
     })
 

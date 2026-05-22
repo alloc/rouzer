@@ -189,7 +189,7 @@ function connectTree(
       const fetch = node.schema.response ? json : request
       return [
         key,
-        (args: RouteArgs) =>
+        (args: RouteArgs = {}) =>
           fetch({
             schema: node.schema,
             path,

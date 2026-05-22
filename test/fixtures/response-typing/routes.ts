@@ -1,11 +1,8 @@
-import { $type, route } from 'rouzer'
+import { $type } from 'rouzer'
+import * as http from 'rouzer/http'
 
-export const jsonRoute = route('json', {
-  GET: {
-    response: $type<{ message: string }>(),
-  },
+export const jsonRoute = http.get('json', {
+  response: $type<{ message: string }>(),
 })
 
-export const pingRoute = route('ping', {
-  GET: {},
-})
+export const pingRoute = http.get('ping', {})
