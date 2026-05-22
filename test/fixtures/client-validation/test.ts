@@ -51,5 +51,22 @@ export default {
       ]]
     `)
     expect(fetch).not.toHaveBeenCalled()
+
+    const headerClient = createClient({
+      baseURL: 'http://test.local',
+      routes,
+      headers: { 'x-token': 'abc' },
+      fetch,
+    })
+
+    await expect(headerClient.headerRoute.GET()).resolves.toBeInstanceOf(
+      Response
+    )
+    expect(fetch).toHaveBeenCalledWith(
+      new URL('http://test.local/headers'),
+      expect.objectContaining({
+        headers: { 'x-token': 'abc' },
+      })
+    )
   },
 }

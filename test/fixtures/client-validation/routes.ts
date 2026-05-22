@@ -16,3 +16,11 @@ export const bodyRoute = route('body', {
     }),
   },
 })
+
+export const headerRoute = route('headers', {
+  GET: {
+    headers: z.object({
+      'x-token': z.string().check(z.minLength(3)),
+    }),
+  },
+})

@@ -79,9 +79,9 @@ export function createClient<
 
     if (headers) {
       headers = shake(headers)
-      if (defaultHeaders) {
-        headers = { ...defaultHeaders, ...headers }
-      }
+    }
+    if (defaultHeaders) {
+      headers = headers ? { ...defaultHeaders, ...headers } : defaultHeaders
     }
 
     if (schema.headers) {
