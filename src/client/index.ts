@@ -1,5 +1,6 @@
-import { mapValues, Promisable, shake } from '../common.js'
-import { Route } from '../route.js'
+import { RoutePattern } from '@remix-run/route-pattern'
+import { Promisable, shake } from '../common.js'
+import type { HttpAction, HttpResource, HttpRouteTree } from '../http.js'
 import type {
   InferRouteResponse,
   RouteArgs,
@@ -7,23 +8,23 @@ import type {
   RouteSchema,
 } from '../types.js'
 
-/** Client type inferred from a route map passed to `createClient`. */
+/** Client type inferred from an HTTP route tree passed to `createClient`. */
 export type RouzerClient<
-  TRoutes extends Record<string, Route> = Record<string, never>,
+  TRoutes extends HttpRouteTree = Record<string, never>,
 > = ReturnType<typeof createClient<TRoutes>>
 
 /**
- * Create a typed fetch client for Rouzer route declarations.
+ * Create a typed fetch client for an HTTP route tree.
  *
  * @remarks The returned client always includes `request(...)` for raw responses
- * and `json(...)` for parsed JSON. Passing `routes` also attaches shorthand
- * methods such as `client.helloRoute.GET(...)`.
+ * and `json(...)` for parsed JSON. Passing `routes` also mirrors the resource
+ * tree and attaches direct action functions such as `client.users.list(...)`.
  */
 export function createClient<
-  TRoutes extends Record<string, Route> = Record<string, never>,
+  TRoutes extends HttpRouteTree = Record<string, never>,
 >(config: {
   /**
-   * Absolute base URL used for pathname route patterns.
+   * Absolute base URL used for generated request URLs.
    *
    * @remarks A trailing slash is added when missing. In browsers, derive a
    * relative API path with `new URL('/api/', window.location.origin).href`.
@@ -37,12 +38,12 @@ export function createClient<
    */
   headers?: Record<string, string>
   /**
-   * Route map to attach as shorthand methods on the client.
+   * HTTP route tree to attach as direct client action functions.
    *
    * @example
    * ```ts
    * const client = createClient({ baseURL: 'https://example.com/api/', routes })
-   * await client.helloRoute.GET({ path: { name: 'world' } })
+   * await client.users.list({ query: { page: 1 } })
    * ```
    */
   routes?: TRoutes
@@ -51,8 +52,6 @@ export function createClient<
    *
    * @remarks When provided, the return value is returned from `.json()` as-is;
    * Rouzer does not automatically parse a `Response` returned by this hook.
-   * Without this hook, `.json()` throws an `Error` and copies JSON error-body
-   * properties onto it when the response has a JSON content type.
    */
   onJsonError?: (response: Response) => Promisable<Response>
   /** Custom `fetch` implementation to use for requests. */
@@ -73,13 +72,12 @@ export function createClient<
     }
 
     let url: URL
-
     const href = pathBuilder.href(path)
     if (href[0] === '/') {
       url = new URL(baseURL)
       url.pathname += href.slice(1)
     } else {
-      url = new URL(href)
+      url = new URL(href, baseURL)
     }
 
     if (schema.query) {
@@ -100,7 +98,6 @@ export function createClient<
     if (defaultHeaders) {
       headers = headers ? { ...defaultHeaders, ...headers } : defaultHeaders
     }
-
     if (schema.headers) {
       headers = schema.headers.parse(headers) as any
     }
@@ -132,29 +129,34 @@ export function createClient<
 
   return {
     ...((config.routes
-      ? mapValues(config.routes, route => connectRoute(route, request, json))
-      : null) as unknown as {
-      [K in keyof TRoutes]: TRoutes[K]['methods'] extends infer TMethods
-        ? {
-            [M in keyof TMethods]: RouteFunction<
-              Extract<TMethods[M], RouteSchema>,
-              TRoutes[K]['path']['source']
-            >
-          }
-        : never
-    }),
+      ? connectTree(config.routes, '', request, json)
+      : null) as ClientTree<TRoutes>),
     config,
     request,
     json,
   }
 }
 
+type Join<A extends string, B extends string> = A extends ''
+  ? B
+  : B extends ''
+    ? A
+    : `${A}/${B}`
+
+/** Client object shape produced from an HTTP route tree. */
+export type ClientTree<T extends HttpRouteTree, TPrefix extends string = ''> = {
+  [K in keyof T]: T[K] extends HttpResource<infer P, infer C>
+    ? ClientTree<C, Join<TPrefix, P>>
+    : T[K] extends HttpAction<infer P, infer S, any>
+      ? RouteFunction<S, Join<TPrefix, P>>
+      : never
+}
+
 /**
- * Shorthand client method attached for each route method when `routes` is passed
- * to `createClient`.
+ * Client action function attached for each HTTP action leaf.
  *
- * @remarks Methods whose schema has `response: $type<T>()` return parsed JSON as
- * `T`. Methods without a response marker return the raw `Response`.
+ * @remarks Actions whose schema has `response: $type<T>()` return parsed JSON
+ * as `T`. Actions without a response marker return the raw `Response`.
  */
 export type RouteFunction<T extends RouteSchema, P extends string> = (
   ...p: RouteArgs<T, P> extends infer TArgs
@@ -164,16 +166,42 @@ export type RouteFunction<T extends RouteSchema, P extends string> = (
     : never
 ) => Promise<T extends { response: any } ? InferRouteResponse<T> : Response>
 
-function connectRoute(
-  route: Route,
+function connectTree(
+  tree: HttpRouteTree,
+  prefix: string,
   request: (props: RouteRequest) => Promise<Response>,
   json: (props: RouteRequest) => Promise<any>
-) {
-  return {
-    ...route,
-    ...mapValues(route.methods, (schema, key) => {
-      const fetch = schema.response ? json : request
-      return (args: RouteArgs) => fetch(route[key]!(args))
-    }),
-  }
+): any {
+  return Object.fromEntries(
+    Object.entries(tree).map(([key, node]) => {
+      if (node.kind === 'resource') {
+        return [
+          key,
+          connectTree(
+            node.children,
+            joinPaths(prefix, node.path.source),
+            request,
+            json
+          ),
+        ]
+      }
+      const path = new RoutePattern(joinPaths(prefix, node.path?.source ?? ''))
+      const fetch = node.schema.response ? json : request
+      return [
+        key,
+        (args: RouteArgs) =>
+          fetch({
+            schema: node.schema,
+            path,
+            method: node.method,
+            args,
+            $result: undefined!,
+          }),
+      ]
+    })
+  )
+}
+
+function joinPaths(left: string, right: string) {
+  return [left, right].filter(Boolean).join('/').replace(/\/+/g, '/')
 }

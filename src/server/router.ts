@@ -10,7 +10,8 @@ import {
 } from 'alien-middleware'
 import * as z from 'zod'
 import { mapValues } from '../common.js'
-import type { Routes, RouteSchemaMap } from '../types.js'
+import type { HttpRouteTree } from '../http.js'
+import type { RouteSchema } from '../types.js'
 import type { RouteRequestHandlerMap } from './types.js'
 
 export { chain }
@@ -80,7 +81,7 @@ class RouterObject extends MiddlewareChain {
 
   use(
     ...args:
-      | [Routes, RouteRequestHandlerMap]
+      | [HttpRouteTree, RouteRequestHandlerMap]
       | Parameters<MiddlewareChain['use']>
   ): any {
     const handler =
@@ -90,25 +91,18 @@ class RouterObject extends MiddlewareChain {
   }
 
   /** @internal */
-  private useRoutes(routeSchemas: Routes, handlers: RouteRequestHandlerMap) {
+  private useRoutes(
+    routeSchemas: HttpRouteTree,
+    handlers: RouteRequestHandlerMap
+  ) {
     const { config, basePath } = this
 
-    const routes = Object.entries(routeSchemas).map(([name, route]) => ({
-      name,
-      path: basePath
-        ? new RoutePattern(route.path.source.replace(/^\/?/, basePath))
-        : route.path,
-      methods: mapValues(route.methods, (schema, method) => {
-        const handler = handlers[name][method]
-        if (!handler && config.debug) {
-          console.error(`Handler missing for route: ${method} ${name}`)
-        }
-        return {
-          schema,
-          handler,
-        }
-      }),
-    }))
+    const routes = flattenRoutes(
+      routeSchemas,
+      handlers,
+      basePath ?? '',
+      config.debug
+    )
 
     const addDebugHeaders = config.debug
       ? (context: RequestContext, route: { name: string }) => {
@@ -133,14 +127,11 @@ class RouterObject extends MiddlewareChain {
       }
 
       for (const route of routes) {
-        const props = route.methods.hasOwnProperty(method)
-          ? route.methods[method as keyof RouteSchemaMap]
-          : route.methods.ALL
-        if (!props) {
+        if (route.method !== method) {
           continue
         }
 
-        const { schema, handler } = props
+        const { schema, handler } = route
         if (!handler) {
           continue
         }
@@ -151,13 +142,6 @@ class RouterObject extends MiddlewareChain {
         }
 
         if (isPreflight) {
-          const optionsHandler = handlers[route.name].OPTIONS
-          if (optionsHandler) {
-            const response = await optionsHandler(context)
-            if (response) {
-              return response
-            }
-          }
           return new Response(null, {
             headers: {
               'Access-Control-Allow-Origin': origin ?? '',
@@ -243,11 +227,15 @@ export interface Router<T extends MiddlewareTypes = any>
   ): Router<ApplyMiddleware<this, TMiddleware>>
 
   /**
-   * Clone this router and add the given routes and handlers to the chain.
+   * Clone this router and add the given HTTP route tree and handlers to the
+   * chain.
+   *
+   * @remarks The handler object mirrors the resource tree. Resource nodes are
+   * nested objects, and action nodes are direct handler functions.
    *
    * @returns a new `Router` instance.
    */
-  use<TRoutes extends Routes>(
+  use<TRoutes extends HttpRouteTree>(
     routes: TRoutes,
     handlers: RouteRequestHandlerMap<TRoutes, this>
   ): Router<T>
@@ -272,6 +260,50 @@ export function createRouter<
   const handler = router.toHandler()
   Object.setPrototypeOf(handler, router)
   return handler as any
+}
+
+function flattenRoutes(
+  tree: HttpRouteTree,
+  handlers: any,
+  prefix: string,
+  debug?: boolean
+): Array<{
+  name: string
+  path: RoutePattern
+  method: string
+  schema: RouteSchema
+  handler: Function
+}> {
+  const routes: Array<any> = []
+  for (const [name, node] of Object.entries(tree)) {
+    if (node.kind === 'resource') {
+      routes.push(
+        ...flattenRoutes(
+          node.children,
+          handlers[name],
+          joinPaths(prefix, node.path.source),
+          debug
+        )
+      )
+    } else {
+      const handler = handlers[name]
+      if (!handler && debug) {
+        console.error(`Handler missing for route: ${node.method} ${name}`)
+      }
+      routes.push({
+        name,
+        path: new RoutePattern(joinPaths(prefix, node.path?.source ?? '')),
+        method: node.method,
+        schema: node.schema,
+        handler,
+      })
+    }
+  }
+  return routes
+}
+
+function joinPaths(left: string, right: string) {
+  return [left, right].filter(Boolean).join('/').replace(/\/+/g, '/')
 }
 
 function httpClientError(

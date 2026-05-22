@@ -6,7 +6,8 @@ import type {
 } from 'alien-middleware'
 import type * as z from 'zod'
 import { Promisable } from '../common.js'
-import type { InferRouteResponse, Routes, RouteSchema } from '../types.js'
+import type { HttpAction, HttpResource, HttpRouteTree } from '../http.js'
+import type { InferRouteResponse, RouteSchema } from '../types.js'
 
 type RequestContext<TMiddleware extends AnyMiddlewareChain> =
   MiddlewareContext<TMiddleware>
@@ -19,69 +20,64 @@ type RouteRequestHandler<
   context: RequestContext<TMiddleware> & TArgs
 ) => Promisable<TResult | Response>
 
-type InferRouteRequestHandler<
+type InferActionHandler<
   TMiddleware extends AnyMiddlewareChain,
-  TSchema extends RouteSchema,
-  TMethod extends string,
+  TAction extends HttpAction,
   TPath extends string,
-> = TMethod extends 'GET'
+> = TAction['method'] extends 'GET'
   ? RouteRequestHandler<
       TMiddleware,
       {
-        path: TSchema extends { path: any }
-          ? z.infer<TSchema['path']>
+        path: TAction['schema'] extends { path: any }
+          ? z.infer<TAction['schema']['path']>
           : Params<TPath>
-        query: TSchema extends { query: any }
-          ? z.infer<TSchema['query']>
+        query: TAction['schema'] extends { query: any }
+          ? z.infer<TAction['schema']['query']>
           : undefined
-        headers: TSchema extends { headers: any }
-          ? z.infer<TSchema['headers']>
+        headers: TAction['schema'] extends { headers: any }
+          ? z.infer<TAction['schema']['headers']>
           : undefined
       },
-      InferRouteResponse<TSchema>
+      InferRouteResponse<Extract<TAction['schema'], RouteSchema>>
     >
   : RouteRequestHandler<
       TMiddleware,
       {
-        path: TSchema extends { path: any }
-          ? z.infer<TSchema['path']>
+        path: TAction['schema'] extends { path: any }
+          ? z.infer<TAction['schema']['path']>
           : Params<TPath>
-        body: TSchema extends { body: any }
-          ? z.infer<TSchema['body']>
+        body: TAction['schema'] extends { body: any }
+          ? z.infer<TAction['schema']['body']>
           : undefined
-        headers: TSchema extends { headers: any }
-          ? z.infer<TSchema['headers']>
+        headers: TAction['schema'] extends { headers: any }
+          ? z.infer<TAction['schema']['headers']>
           : undefined
       },
-      InferRouteResponse<TSchema>
+      InferRouteResponse<Extract<TAction['schema'], RouteSchema>>
     >
+
+type Join<A extends string, B extends string> = A extends ''
+  ? B
+  : B extends ''
+    ? A
+    : `${A}/${B}`
 
 /**
  * Handler map shape required by `createRouter().use(routes, handlers)`.
  *
- * @remarks Each route key must provide handlers for the methods declared by its
- * route schema. Handler context is inferred from middleware plus the route's
- * path, query/body, and header schemas. An optional `OPTIONS` handler can
- * customize CORS preflight responses for a route.
+ * @remarks The handler object mirrors the HTTP route tree. Resource nodes become
+ * nested handler objects, while action nodes become direct handler functions.
+ * Handler context is inferred from middleware plus accumulated path params,
+ * query/body schemas, and header schemas.
  */
 export type RouteRequestHandlerMap<
-  TRoutes extends Routes = Routes,
+  TRoutes extends HttpRouteTree = HttpRouteTree,
   TMiddleware extends AnyMiddlewareChain = MiddlewareChain,
+  TPrefix extends string = '',
 > = {
-  [K in keyof TRoutes]: {
-    [TMethod in keyof TRoutes[K]['methods']]: InferRouteRequestHandler<
-      TMiddleware,
-      Extract<TRoutes[K]['methods'][TMethod], RouteSchema>,
-      Extract<TMethod, string>,
-      TRoutes[K]['path']['source']
-    >
-  } & {
-    OPTIONS?: RouteRequestHandler<
-      TMiddleware,
-      {
-        path: Params<TRoutes[K]['path']['source']>
-      },
-      void
-    >
-  }
+  [K in keyof TRoutes]: TRoutes[K] extends HttpResource<infer P, infer C>
+    ? RouteRequestHandlerMap<C, TMiddleware, Join<TPrefix, P>>
+    : TRoutes[K] extends HttpAction<infer P, any, any>
+      ? InferActionHandler<TMiddleware, TRoutes[K], Join<TPrefix, P>>
+      : never
 }
