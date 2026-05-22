@@ -1,17 +1,17 @@
 # Rouzer
 
-Rouzer lets you declare a route once and share its TypeScript types and Zod
-validation between a Hattip-compatible server and a typed fetch client.
+Rouzer lets you declare an HTTP route tree once and share its TypeScript types
+and Zod validation between a Hattip-compatible server and a typed fetch client.
 
 ## What it does
 
-A Rouzer route declaration defines a URL pattern, method schemas, and optional
-response type once, then reuses that contract to:
+A Rouzer HTTP route tree defines URL patterns, named actions, method schemas, and
+optional response types once, then reuses that contract to:
 
 - validate client arguments before `fetch`
 - match and validate server requests before handlers run
 - type handler context from path, query/body, headers, and middleware
-- attach typed client shorthand methods such as `client.helloRoute.GET(...)`
+- attach typed client action functions such as `client.profiles.get(...)`
 
 Rouzer optimizes for shared TypeScript route modules over language-agnostic API
 schemas or generated SDKs.
@@ -20,10 +20,10 @@ schemas or generated SDKs.
 
 Use Rouzer if:
 
-- your server and client can import the same TypeScript route declarations
+- your server and client can import the same TypeScript route tree
 - you want Zod request validation on both sides of an HTTP boundary
 - a Hattip-compatible handler fits your server runtime
-- you prefer a small routing/client contract over a full web framework
+- you prefer named resource/action functions over a generated client class
 
 Consider something else if:
 
@@ -41,7 +41,7 @@ Consider something else if:
 - Zod v4 or newer
 - a Hattip adapter when using `createRouter(...)`
 - a Fetch API implementation when using `createClient(...)`
-- an absolute `baseURL` for pathname route patterns
+- an absolute `baseURL` for generated client URLs
 
 ## Installation
 
@@ -49,41 +49,40 @@ Consider something else if:
 pnpm add rouzer zod
 ```
 
-Import the public API from the root package:
+Import the primary API from the root package and declare routes through the HTTP
+subpath:
 
 ```ts
-import { $type, chain, createClient, createRouter, route } from 'rouzer'
+import { $type, chain, createClient, createRouter } from 'rouzer'
+import * as http from 'rouzer/http'
 ```
 
 `chain` is re-exported from `alien-middleware` for typed server middleware.
 
 ## Quick example
 
-This example shows the core loop: one route contract defines validation, server
-handler types, and the typed client call.
+This example shows the core loop: one HTTP action contract defines validation,
+server handler types, and the typed client call.
 
 ```ts
 import * as z from 'zod'
-import { $type, createClient, createRouter, route } from 'rouzer'
+import { $type, createClient, createRouter } from 'rouzer'
+import * as http from 'rouzer/http'
 
-export const helloRoute = route('hello/:name', {
-  GET: {
-    query: z.object({
-      excited: z.optional(z.boolean()),
-    }),
-    response: $type<{ message: string }>(),
-  },
+export const hello = http.get('hello/:name', {
+  query: z.object({
+    excited: z.optional(z.boolean()),
+  }),
+  response: $type<{ message: string }>(),
 })
 
-export const routes = { helloRoute }
+export const routes = { hello }
 
 export const handler = createRouter({ basePath: 'api/' }).use(routes, {
-  helloRoute: {
-    GET(ctx) {
-      return {
-        message: `Hello, ${ctx.path.name}${ctx.query.excited ? '!' : '.'}`,
-      }
-    },
+  hello(ctx) {
+    return {
+      message: `Hello, ${ctx.path.name}${ctx.query.excited ? '!' : '.'}`,
+    }
   },
 })
 
@@ -92,20 +91,20 @@ const client = createClient({
   routes,
 })
 
-const { message } = await client.helloRoute.GET({
+const { message } = await client.hello({
   path: { name: 'world' },
   query: { excited: true },
 })
 ```
 
-`handler` can be mounted with any Hattip adapter. Client calls validate route
-arguments before `fetch`; server handlers validate matched path, query, headers,
-and JSON bodies before your handler runs.
+`handler` can be mounted with any Hattip adapter. Client action calls validate
+route arguments before `fetch`; server handlers validate matched path, query,
+headers, and JSON bodies before your handler runs.
 
 ## Documentation
 
-- [Concepts and API selection](docs/context.md)
+- [Concepts, API selection, and v2.0.1 migration notes](docs/context.md)
 - [Runnable shared-route example](examples/basic-usage.ts)
 - Generated declarations in the published package provide the exact signatures
-  for every public export.
+  for every public export, including the `rouzer/http` subpath.
 - Public TSDoc in `src/` owns symbol-level behavior and option details.

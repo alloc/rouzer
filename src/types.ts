@@ -40,11 +40,11 @@ export type MutationRouteSchema = {
 }
 
 /**
- * Method schema map accepted by `route(...)`.
+ * Method schema map accepted by the low-level `route(...)` helper.
  *
- * @remarks `GET` validates query input, mutation methods validate JSON body
- * input, and `ALL` acts as a fallback for methods that are not declared
- * explicitly.
+ * @remarks `GET` validates query input and mutation methods validate JSON body
+ * input. Prefer `rouzer/http` actions for route trees registered with
+ * `createRouter().use(...)` or `createClient({ routes })`.
  */
 export type RouteSchemaMap = {
   GET?: QueryRouteSchema
@@ -69,7 +69,13 @@ export type RouteSchemaMap = {
 /** Any route method schema Rouzer can execute. */
 export type RouteSchema = QueryRouteSchema | MutationRouteSchema
 
-/** Route map accepted by `createRouter().use(...)` and `createClient(...)`. */
+/**
+ * Low-level route map shape produced from `route(...)` declarations.
+ *
+ * @remarks The router and client shorthand registration APIs now expect
+ * `HttpRouteTree` values from the `rouzer/http` subpath. Use this type only for
+ * code that still works directly with low-level `route(...)` descriptors.
+ */
 export type Routes = {
   [key: string]: { path: RoutePattern; methods: RouteSchemaMap }
 }
@@ -103,7 +109,8 @@ type MutationArgs<T> = T extends MutationRouteSchema
   : unknown
 
 /**
- * Arguments accepted by a route request factory such as `route.GET(...)`.
+ * Arguments accepted by a request factory such as an HTTP action's `.request(...)`
+ * or a low-level `route.GET(...)` factory.
  *
  * @remarks The type is derived from a method schema and route pattern. `path`,
  * `query`, `body`, and `headers` are validated by the client before `fetch` when
@@ -123,7 +130,7 @@ export type RouteArgs<
   }
 
 /**
- * Request descriptor produced by a route request factory.
+ * Request descriptor produced by an HTTP action or route request factory.
  *
  * @remarks Pass this object to `client.request(...)` for a raw `Response` or
  * `client.json(...)` for parsed JSON handling.
@@ -164,10 +171,12 @@ type InferRouteArgsBody<TArgs> = TArgs extends { body?: infer TBody }
   : never
 
 /**
- * Infer the request body type from a mutation schema or route request factory.
+ * Infer the request body type from a schema or request factory.
  *
- * @remarks Route request factories for mutation methods infer their `body`
- * argument type. Mutation schemas without a body schema infer `unknown`.
+ * @remarks HTTP action schemas can be inspected with
+ * `InferRouteBody<typeof action.schema>`. Request factories for mutation methods
+ * infer their `body` argument type. Schemas without a body schema infer
+ * `unknown`.
  */
 export type InferRouteBody<T> =
   T extends RouteRequestFactory<any, any>
@@ -177,10 +186,11 @@ export type InferRouteBody<T> =
       : never
 
 /**
- * Infer the request body type for a named method on a `Route`.
+ * Infer the request body type for a named method on a low-level `Route`.
  *
  * @remarks `GET` and `ALL` infer `never` because they do not accept request
- * bodies.
+ * bodies. For `rouzer/http` actions, prefer
+ * `InferRouteBody<typeof action.schema>`.
  */
 export type InferRouteMethodBody<
   TRoute extends { methods: RouteSchemaMap },
@@ -192,7 +202,7 @@ export type InferRouteMethodBody<
     : InferRouteBody<Extract<TRoute['methods'][TMethod], RouteSchema>>
 
 /**
- * Callable factory attached to a `Route` for each declared method.
+ * Callable factory attached to an HTTP action or low-level `Route` method.
  *
  * @remarks Calling a factory validates no data by itself; it creates a typed
  * `RouteRequest` descriptor for `createClient` to validate and send.

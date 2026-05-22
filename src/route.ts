@@ -12,15 +12,16 @@ import type {
  * Create a compile-time-only marker for a route's JSON response payload type.
  *
  * @remarks `$type<T>()` does not perform runtime validation. It lets Rouzer type
- * server handler return values and client shorthand methods for routes whose
+ * server handler return values and client action functions for routes whose
  * responses are expected to be JSON.
  *
  * @example
  * ```ts
- * const helloRoute = route('hello/:name', {
- *   GET: {
- *     response: $type<{ message: string }>(),
- *   },
+ * import { $type } from 'rouzer'
+ * import * as http from 'rouzer/http'
+ *
+ * const hello = http.get('hello/:name', {
+ *   response: $type<{ message: string }>(),
  * })
  * ```
  */
@@ -31,18 +32,20 @@ export function $type<T>() {
 $type.symbol = Symbol()
 
 /**
- * Shared route declaration produced by `route(...)`.
+ * Low-level route declaration produced by `route(...)`.
  *
  * @remarks A `Route` stores the parsed URL pattern, the method schema map, and a
- * request factory for each declared method. Pass route maps to both
- * `createRouter().use(...)` and `createClient({ routes })` to share the same
- * contract on both sides of an HTTP boundary.
+ * request factory for each declared method. Use those factories with
+ * `client.request(...)` or `client.json(...)` when you need explicit response
+ * handling. For shared server/client route trees, prefer `rouzer/http` actions
+ * and resources; `createRouter().use(...)` and `createClient({ routes })` expect
+ * that HTTP route tree shape.
  */
 export type Route<
   P extends string = string,
   T extends RouteSchemaMap = RouteSchemaMap,
 > = {
-  /** Parsed route pattern used for URL generation and server-side matching. */
+  /** Parsed route pattern used for request URL generation. */
   path: RoutePattern<P>
   /** Method schemas declared for this route. */
   methods: T
@@ -53,11 +56,15 @@ export type Route<
 /**
  * Declare one URL pattern and its supported HTTP method schemas.
  *
+ * @remarks This helper creates low-level request descriptor factories. Prefer
+ * `rouzer/http` action helpers for routes that will be registered with
+ * `createRouter().use(...)` or mirrored by `createClient({ routes })`.
+ *
  * @param pattern Route pattern parsed by `@remix-run/route-pattern`.
  * @param methods Method schemas that describe request validation and optional
  * response typing.
- * @returns A shared route declaration with request factories such as `.GET(...)`
- * and `.POST(...)` for the declared methods.
+ * @returns A route declaration with request factories such as `.GET(...)` and
+ * `.POST(...)` for the declared methods.
  */
 export function route<P extends string, T extends RouteSchemaMap>(
   pattern: P,
