@@ -1,4 +1,5 @@
 import { RoutePattern } from '@remix-run/route-pattern'
+import { createHref } from '@remix-run/route-pattern/href'
 import { Promisable, shake } from '../common.js'
 import type { HttpAction, HttpResource, HttpRouteTree } from '../http.js'
 import type {
@@ -72,7 +73,7 @@ export function createClient<
     }
 
     let url: URL
-    const href = pathBuilder.href(path)
+    const href = createHref(pathBuilder, path)
     if (href[0] === '/') {
       url = new URL(baseURL)
       url.pathname += href.slice(1)
@@ -116,7 +117,7 @@ export function createClient<
         return config.onJsonError(response)
       }
       const error = new Error(
-        `Request to ${props.method} ${props.path.href(props.args.path)} failed with status ${response.status}`
+        `Request to ${props.method} ${createHref(props.path, props.args.path)} failed with status ${response.status}`
       )
       const contentType = response.headers.get('content-type')
       if (contentType?.includes('application/json')) {
@@ -185,7 +186,7 @@ function connectTree(
           ),
         ]
       }
-      const path = new RoutePattern(joinPaths(prefix, node.path?.source ?? ''))
+      const path = RoutePattern.parse(joinPaths(prefix, node.path?.source ?? ''))
       const fetch = node.schema.response ? json : request
       return [
         key,

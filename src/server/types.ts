@@ -1,4 +1,4 @@
-import type { Params } from '@remix-run/route-pattern'
+import type { MatchParams } from '@remix-run/route-pattern/match'
 import type {
   AnyMiddlewareChain,
   MiddlewareChain,
@@ -30,7 +30,7 @@ type InferActionHandler<
       {
         path: TAction['schema'] extends { path: any }
           ? z.infer<TAction['schema']['path']>
-          : Params<TPath>
+          : MatchParams<TPath>
         query: TAction['schema'] extends { query: any }
           ? z.infer<TAction['schema']['query']>
           : undefined
@@ -45,7 +45,7 @@ type InferActionHandler<
       {
         path: TAction['schema'] extends { path: any }
           ? z.infer<TAction['schema']['path']>
-          : Params<TPath>
+          : MatchParams<TPath>
         body: TAction['schema'] extends { body: any }
           ? z.infer<TAction['schema']['body']>
           : undefined

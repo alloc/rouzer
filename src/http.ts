@@ -69,7 +69,7 @@ export function resource<
 >(path: P, children: TChildren): HttpResource<P, TChildren> {
   return {
     kind: 'resource',
-    path: new RoutePattern(path),
+    path: RoutePattern.parse(path),
     children,
   }
 }
@@ -158,11 +158,11 @@ function action(
   schema?: RouteSchema
 ) {
   const path =
-    typeof pathOrSchema === 'string' ? new RoutePattern(pathOrSchema) : undefined
+    typeof pathOrSchema === 'string' ? RoutePattern.parse(pathOrSchema) : undefined
   schema ??= typeof pathOrSchema === 'string' ? {} : pathOrSchema
   const request = ((args: RouteArgs = {}): RouteRequest => ({
     schema,
-    path: path ?? new RoutePattern(''),
+    path: path ?? RoutePattern.parse(''),
     method,
     args,
     $result: undefined!,

@@ -1,5 +1,6 @@
 import type { AdapterRequestContext, HattipHandler } from '@hattip/core'
 import { RoutePattern } from '@remix-run/route-pattern'
+import { createMatcher, type Matcher } from '@remix-run/route-pattern/match'
 import {
   ApplyMiddleware,
   chain,
@@ -138,7 +139,7 @@ class RouterObject extends MiddlewareChain {
           continue
         }
 
-        const match = route.path.match(url)
+        const match = route.matcher.match(url)
         if (!match) {
           continue
         }
@@ -272,6 +273,7 @@ function flattenRoutes(
 ): Array<{
   name: string
   path: RoutePattern
+  matcher: Matcher
   method: string
   schema: RouteSchema
   handler: Function
@@ -294,7 +296,8 @@ function flattenRoutes(
       }
       routes.push({
         name,
-        path: new RoutePattern(joinPaths(prefix, node.path?.source ?? '')),
+        path: RoutePattern.parse(joinPaths(prefix, node.path?.source ?? '')),
+        matcher: createMatcher(joinPaths(prefix, node.path?.source ?? '')),
         method: node.method,
         schema: node.schema,
         handler,

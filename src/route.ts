@@ -63,7 +63,7 @@ export function route<P extends string, T extends RouteSchemaMap>(
   pattern: P,
   methods: T
 ) {
-  const path = new RoutePattern(pattern)
+  const path = RoutePattern.parse(pattern)
   const createFetch =
     (method: string, schema: RouteSchema) =>
     (args: RouteArgs = {}): RouteRequest => {

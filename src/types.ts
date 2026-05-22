@@ -1,4 +1,5 @@
-import { Params, RoutePattern } from '@remix-run/route-pattern'
+import { RoutePattern } from '@remix-run/route-pattern'
+import type { MatchParams } from '@remix-run/route-pattern/match'
 import * as z from 'zod'
 import { Unchecked } from './common.js'
 
@@ -81,7 +82,7 @@ type PathArgs<T, P extends string> = T extends { path: infer TPath }
   ? {} extends z.infer<TPath>
     ? { [K in keyof T as 'path']?: z.infer<TPath> }
     : { [K in keyof T as 'path']: z.infer<TPath> }
-  : Params<P> extends infer TParams
+  : MatchParams<P> extends infer TParams
     ? {} extends TParams
       ? { [K in keyof T as 'path']?: TParams }
       : { [K in keyof T as 'path']: TParams }
