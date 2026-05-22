@@ -7,38 +7,55 @@ import type {
   RouteSchema,
 } from '../types.js'
 
+/** Client type inferred from a route map passed to `createClient`. */
 export type RouzerClient<
   TRoutes extends Record<string, Route> = Record<string, never>,
 > = ReturnType<typeof createClient<TRoutes>>
 
+/**
+ * Create a typed fetch client for Rouzer route declarations.
+ *
+ * @remarks The returned client always includes `request(...)` for raw responses
+ * and `json(...)` for parsed JSON. Passing `routes` also attaches shorthand
+ * methods such as `client.helloRoute.GET(...)`.
+ */
 export function createClient<
   TRoutes extends Record<string, Route> = Record<string, never>,
 >(config: {
   /**
-   * Base URL to use for all requests.
+   * Absolute base URL used for pathname route patterns.
+   *
+   * @remarks A trailing slash is added when missing. In browsers, derive a
+   * relative API path with `new URL('/api/', window.location.origin).href`.
    */
   baseURL: string
   /**
-   * Default headers to send with every request.
+   * Default headers sent with every request.
+   *
+   * @remarks Per-request headers are merged on top of these values. Undefined
+   * per-request headers are removed before `fetch`.
    */
   headers?: Record<string, string>
   /**
-   * Pass in routes to attach them as methods on the client.
+   * Route map to attach as shorthand methods on the client.
+   *
    * @example
    * ```ts
-   * const client = createClient({ baseURL: '/api/', routes: { helloRoute } })
-   * client.helloRoute.GET({ path: { name: 'world' } })
+   * const client = createClient({ baseURL: 'https://example.com/api/', routes })
+   * await client.helloRoute.GET({ path: { name: 'world' } })
    * ```
    */
   routes?: TRoutes
   /**
-   * Custom handler for non-200 response to a `.json()` request. By default, the
-   * response is always parsed as JSON, regardless of the HTTP status code.
+   * Custom handler for non-2xx responses from `.json()`.
+   *
+   * @remarks When provided, the return value is returned from `.json()` as-is;
+   * Rouzer does not automatically parse a `Response` returned by this hook.
+   * Without this hook, `.json()` throws an `Error` and copies JSON error-body
+   * properties onto it when the response has a JSON content type.
    */
   onJsonError?: (response: Response) => Promisable<Response>
-  /**
-   * Custom fetch implementation to use for requests.
-   */
+  /** Custom `fetch` implementation to use for requests. */
   fetch?: typeof globalThis.fetch
 }) {
   const baseURL = config.baseURL.replace(/\/?$/, '/')
@@ -133,9 +150,11 @@ export function createClient<
 }
 
 /**
- * This function sends a request to a route of the same name. Such a function is
- * accessible by setting the `routes` option when creating a Rouzer client,
- * where it will exist as a method on the client.
+ * Shorthand client method attached for each route method when `routes` is passed
+ * to `createClient`.
+ *
+ * @remarks Methods whose schema has `response: $type<T>()` return parsed JSON as
+ * `T`. Methods without a response marker return the raw `Response`.
  */
 export type RouteFunction<T extends RouteSchema, P extends string> = (
   ...p: RouteArgs<T, P> extends infer TArgs

@@ -56,6 +56,14 @@ type InferRouteRequestHandler<
       InferRouteResponse<TSchema>
     >
 
+/**
+ * Handler map shape required by `createRouter().use(routes, handlers)`.
+ *
+ * @remarks Each route key must provide handlers for the methods declared by its
+ * route schema. Handler context is inferred from middleware plus the route's
+ * path, query/body, and header schemas. An optional `OPTIONS` handler can
+ * customize CORS preflight responses for a route.
+ */
 export type RouteRequestHandlerMap<
   TRoutes extends Routes = Routes,
   TMiddleware extends AnyMiddlewareChain = MiddlewareChain,

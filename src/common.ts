@@ -1,5 +1,12 @@
 export type Promisable<T> = T | Promise<T>
 
+/**
+ * Compile-time-only marker used by `$type<T>()` to carry an unchecked response
+ * type through route declarations.
+ *
+ * @remarks Consumers usually use `$type<T>()` instead of constructing this type
+ * directly.
+ */
 export type Unchecked<T> = { __unchecked__: T }
 
 /**

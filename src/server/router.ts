@@ -15,34 +15,36 @@ import type { RouteRequestHandlerMap } from './types.js'
 
 export { chain }
 
+/** Configuration for `createRouter`. */
 export type RouterConfig = {
   /**
-   * Base path to prepend to all routes.
+   * Base path to prepend to all route patterns.
+   *
+   * @remarks Leading and trailing slashes are normalized so `api`, `/api`, and
+   * `api/` all mount routes under `/api/`.
+   *
    * @example
    * ```ts
-   * basePath: 'api/',
+   * createRouter({ basePath: 'api/' })
    * ```
    */
   basePath?: string
   /**
-   * Enable debugging features.
-   * - When a handler throws an error, include its message in the response body.
-   * - Throw an error if a handler is not found for a route.
-   * @example
-   * ```ts
-   * debug: process.env.NODE_ENV !== 'production',
-   * ```
+   * Enable debug behavior for local development.
+   *
+   * @remarks Debug mode adds an `X-Route-Name` response header for matched
+   * routes, includes specific Zod error messages in `400` validation responses,
+   * and logs missing route handlers to the console.
    */
   debug?: boolean
-  /**
-   * CORS configuration.
-   */
+  /** CORS configuration for requests with an `Origin` header. */
   cors?: {
     /**
-     * If defined, requests must have an `Origin` header that is in this list.
+     * Allowed origins for CORS requests.
      *
-     * Origins may contain wildcards for protocol and subdomain. The protocol is
-     * optional and defaults to `https`.
+     * @remarks Origins may contain wildcards for protocol and subdomain. The
+     * protocol is optional and defaults to `https`. Requests with an `Origin`
+     * header outside this list receive `403`.
      *
      * @example
      * ```ts
@@ -225,6 +227,10 @@ class RouterObject extends MiddlewareChain {
   }
 }
 
+/**
+ * Hattip-compatible Rouzer handler with chainable middleware and route
+ * registration.
+ */
 export interface Router<T extends MiddlewareTypes = any>
   extends HattipHandler<T['platform']>, MiddlewareChain<T> {
   /**
@@ -247,6 +253,14 @@ export interface Router<T extends MiddlewareTypes = any>
   ): Router<T>
 }
 
+/**
+ * Create a Rouzer router that can be mounted by any Hattip adapter.
+ *
+ * @param config Optional router configuration for base path, debug behavior, and
+ * CORS origin restrictions.
+ * @returns A Hattip-compatible handler with `.use(...)` methods for middleware
+ * and route registration.
+ */
 export function createRouter<
   TEnv extends object = {},
   TProperties extends object = {},
