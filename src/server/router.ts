@@ -12,7 +12,7 @@ import {
 import * as z from 'zod'
 import { mapValues } from '../common.js'
 import type { HttpRouteTree } from '../http.js'
-import type { RouteSchema } from '../types.js'
+import type { RouteSchema } from '../types/schema.js'
 import type { RouteRequestHandlerMap } from '../types/server.js'
 
 export { chain }

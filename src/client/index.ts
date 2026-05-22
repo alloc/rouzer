@@ -2,12 +2,10 @@ import { RoutePattern } from '@remix-run/route-pattern'
 import { createHref } from '@remix-run/route-pattern/href'
 import { Promisable, shake } from '../common.js'
 import type { HttpAction, HttpResource, HttpRouteTree } from '../http.js'
-import type {
-  InferRouteResponse,
-  RouteArgs,
-  RouteRequest,
-  RouteSchema,
-} from '../types.js'
+import type { RouteArgs } from '../types/args.js'
+import type { RouteRequest } from '../types/request.js'
+import type { InferRouteResponse } from '../types/response.js'
+import type { RouteSchema } from '../types/schema.js'
 
 /** Client type inferred from an HTTP route tree passed to `createClient`. */
 export type RouzerClient<

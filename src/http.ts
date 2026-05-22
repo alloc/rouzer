@@ -1,10 +1,10 @@
 import { RoutePattern } from '@remix-run/route-pattern'
+import type { RouteArgs } from './types/args.js'
 import type {
-  RouteArgs,
   RouteRequest,
   RouteRequestFactory,
-  RouteSchema,
-} from './types.js'
+} from './types/request.js'
+import type { RouteSchema } from './types/schema.js'
 
 /** HTTP methods supported by Rouzer action declarations. */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
