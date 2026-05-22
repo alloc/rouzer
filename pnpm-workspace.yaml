@@ -1,3 +1,6 @@
 onlyBuiltDependencies:
   - esbuild
 minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - '@remix-run/route-pattern'
+  - alien-middleware

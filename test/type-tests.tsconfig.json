@@ -6,6 +6,7 @@
     "lib": ["dom", "es2019"],
     "target": "esnext",
     "noEmit": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": "..",
     "paths": {
       "rouzer": ["src/index.ts"]
