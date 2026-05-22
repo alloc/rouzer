@@ -39,9 +39,8 @@ export const routes = { getProfile }
 ```
 
 An action is a callable endpoint leaf. Use `http.get`, `http.post`, `http.put`,
-`http.patch`, or `http.del`/`http.delete` to declare one HTTP operation. The key
-you put the action under is the client and handler name; the action path is the
-URL pattern.
+`http.patch`, or `http.delete` to declare one HTTP operation. The key you put the
+action under is the client and handler name; the action path is the URL pattern.
 
 Use `http.resource(path, children)` when several actions share a path prefix or
 when you want nested client/handler namespaces:
@@ -83,7 +82,7 @@ Method schemas describe the request pieces Rouzer should validate:
 | Action helper                         | Request schemas                        | Notes            |
 | ------------------------------------- | -------------------------------------- | ---------------- |
 | `http.get(...)`                       | `path`, `query`, `headers`, `response` | No request body. |
-| `http.post/put/patch/delete/del(...)` | `path`, `body`, `headers`, `response`  | No query schema. |
+| `http.post/put/patch/delete(...)` | `path`, `body`, `headers`, `response`  | No query schema. |
 
 If you omit a `path` schema, TypeScript infers path params from the pattern and
 server handlers receive them as strings. Add a Zod `path` schema when you need
@@ -164,16 +163,6 @@ const client = createClient({
 Default headers can be supplied with `headers`, per-request headers are merged on
 top, and a custom `fetch` implementation can be supplied for tests or non-browser
 runtimes.
-
-### Low-level `route(...)` descriptors
-
-The root package still exports `route(pattern, methods)`. It creates method-keyed
-request descriptor factories such as `legacyRoute.GET(args)` for explicit
-`client.request(...)` or `client.json(...)` calls.
-
-Prefer `rouzer/http` route trees for shared server/client routing. The router and
-client shorthand registration APIs expect `HttpAction`/`HttpResource` trees, not
-the older method-map objects produced by `route(...)`.
 
 ## Lifecycle
 
@@ -332,7 +321,8 @@ await client.profiles.update({
 - Nested action `.request(...)` factories do not include parent resource paths;
   prefer client action functions for nested resources.
 - Extra `RequestInit` fields in route args, such as `signal` or `credentials`,
-  are accepted by the type surface but are not forwarded by `createClient`.
+  are forwarded by `createClient`; `method`, `body`, and `headers` are reserved
+  for Rouzer's action metadata and validated call arguments.
 - The HTTP action API has no `ALL` fallback route. Declare explicit actions for
   supported methods.
 - Rouzer does not automatically set `Access-Control-Allow-Credentials`; set it in
