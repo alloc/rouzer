@@ -65,9 +65,10 @@ export function createClient<
   async function request<T extends RouteRequest>({
     path: pathBuilder,
     method,
-    args: { path, query, body, headers },
+    args,
     schema,
   }: T) {
+    let { path, query, body, headers, ...init } = args
     if (schema.path) {
       path = schema.path.parse(path)
     }
@@ -104,6 +105,7 @@ export function createClient<
     }
 
     return fetch(url, {
+      ...init,
       method,
       body: body !== undefined ? JSON.stringify(body) : undefined,
       headers: (headers ?? defaultHeaders) as HeadersInit,

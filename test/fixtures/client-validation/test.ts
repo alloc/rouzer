@@ -59,12 +59,13 @@ export default {
       fetch,
     })
 
-    await expect(headerClient.headerRoute()).resolves.toBeInstanceOf(
-      Response
-    )
+    await expect(
+      headerClient.headerRoute({ credentials: 'include' })
+    ).resolves.toBeInstanceOf(Response)
     expect(fetch).toHaveBeenCalledWith(
       new URL('http://test.local/headers'),
       expect.objectContaining({
+        credentials: 'include',
         headers: { 'x-token': 'abc' },
       })
     )
