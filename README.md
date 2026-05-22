@@ -3,7 +3,46 @@
 Rouzer lets you declare a route once and share its TypeScript types and Zod
 validation between a Hattip-compatible server and a typed fetch client.
 
-Rouzer is ESM-only and expects Zod v4 or newer.
+## What it does
+
+A Rouzer route declaration defines a URL pattern, method schemas, and optional
+response type once, then reuses that contract to:
+
+- validate client arguments before `fetch`
+- match and validate server requests before handlers run
+- type handler context from path, query/body, headers, and middleware
+- attach typed client shorthand methods such as `client.helloRoute.GET(...)`
+
+Rouzer optimizes for shared TypeScript route modules over language-agnostic API
+schemas or generated SDKs.
+
+## Is this for you?
+
+Use Rouzer if:
+
+- your server and client can import the same TypeScript route declarations
+- you want Zod request validation on both sides of an HTTP boundary
+- a Hattip-compatible handler fits your server runtime
+- you prefer a small routing/client contract over a full web framework
+
+Consider something else if:
+
+- you need OpenAPI-first workflows, schema files, or generated clients for other
+  languages
+- you need runtime response-body validation; `response: $type<T>()` is
+  compile-time only
+- you want a framework that owns controllers, data loading, rendering, and
+  deployment adapters
+- you cannot use ESM or Zod v4+
+
+## Requirements
+
+- ESM runtime and tooling
+- Zod v4 or newer
+- a Hattip adapter when using `createRouter(...)`
+- a Fetch API implementation when using `createClient(...)`
+- an absolute `baseURL` for pathname route patterns with the current client
+  implementation
 
 ## Installation
 
@@ -20,6 +59,9 @@ import { $type, chain, createClient, createRouter, route } from 'rouzer'
 `chain` is re-exported from `alien-middleware` for typed server middleware.
 
 ## Quick example
+
+This example shows the core loop: one route contract defines validation, server
+handler types, and the typed client call.
 
 ```ts
 import * as z from 'zod'
