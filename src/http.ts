@@ -135,22 +135,21 @@ export function patch(
 }
 
 /** Declare a DELETE action, optionally with an action-local path segment. */
-export function del<const P extends string, const T extends RouteSchema>(
+function deleteAction<const P extends string, const T extends RouteSchema>(
   path: P,
   schema: T
 ): HttpAction<P, T, 'DELETE'>
-export function del<const T extends RouteSchema>(
+function deleteAction<const T extends RouteSchema>(
   schema: T
 ): HttpAction<'', T, 'DELETE'>
-export function del(
+function deleteAction(
   pathOrSchema: string | RouteSchema,
   schema?: RouteSchema
 ): any {
   return action('DELETE', pathOrSchema, schema)
 }
 
-/** Alias for `del(...)`, exported for namespace imports as `http.delete(...)`. */
-export { del as delete }
+export { deleteAction as delete }
 
 function action(
   method: HttpMethod,
