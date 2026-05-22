@@ -106,9 +106,9 @@ type MutationArgs<T> = T extends MutationRouteSchema
  *
  * @remarks The type is derived from a method schema and route pattern. `path`,
  * `query`, `body`, and `headers` are validated by the client before `fetch` when
- * a matching schema exists. The current client implementation forwards the HTTP
- * method, JSON body, and headers; extra `RequestInit` fields are accepted by the
- * type surface but are not forwarded.
+ * a matching schema exists. The client forwards the HTTP method, JSON body, and
+ * headers; extra `RequestInit` fields are accepted by the type surface but are
+ * not forwarded.
  */
 export type RouteArgs<
   T extends RouteSchema = any,

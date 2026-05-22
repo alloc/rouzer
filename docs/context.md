@@ -158,10 +158,9 @@ is JSON, its properties are copied onto the thrown `Error`.
 ## Constraints and gotchas
 
 - `$type<T>()` is compile-time only and does not validate response payloads.
-- Pathname route patterns currently expect an absolute client `baseURL`.
+- Pathname route patterns expect an absolute client `baseURL`.
 - Extra `RequestInit` fields in route args, such as `signal` or `credentials`,
-  are accepted by the type surface but are not forwarded by the current
-  `createClient` implementation.
+  are accepted by the type surface but are not forwarded by `createClient`.
 - `ALL` can declare `query`, but handler context typing is less precise than
   explicit `GET` handlers.
 - Rouzer does not automatically set `Access-Control-Allow-Credentials`; set it in

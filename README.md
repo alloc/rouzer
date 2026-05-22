@@ -41,8 +41,7 @@ Consider something else if:
 - Zod v4 or newer
 - a Hattip adapter when using `createRouter(...)`
 - a Fetch API implementation when using `createClient(...)`
-- an absolute `baseURL` for pathname route patterns with the current client
-  implementation
+- an absolute `baseURL` for pathname route patterns
 
 ## Installation
 
