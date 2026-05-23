@@ -141,6 +141,7 @@ for await (const event of await client.events()) {
 
 - [Concepts, API selection, and v2.0.1 migration notes](docs/context.md)
 - [Runnable shared-route example](examples/basic-usage.ts)
+- [Runnable NDJSON response-stream example](examples/ndjson-stream.ts)
 - Generated declarations in the published package provide the exact signatures
   for every public export, including the `rouzer/http` and `rouzer/ndjson`
   subpaths.

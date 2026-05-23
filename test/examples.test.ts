@@ -1,4 +1,5 @@
 import { runBasicUsageExample } from '../examples/basic-usage.js'
+import { runNdjsonStreamExample } from '../examples/ndjson-stream.js'
 
 test('basic usage example stays runnable', async () => {
   await expect(runBasicUsageExample()).resolves.toEqual({
@@ -15,4 +16,11 @@ test('basic usage example stays runnable', async () => {
       requestId: 'local',
     },
   })
+})
+
+test('NDJSON stream example stays runnable', async () => {
+  await expect(runNdjsonStreamExample()).resolves.toEqual([
+    { id: 1, message: 'ready' },
+    { id: 2, message: 'done' },
+  ])
 })

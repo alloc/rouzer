@@ -16,7 +16,7 @@ export type NdjsonSource<T = unknown> = Iterable<T> | AsyncIterable<T>
  * @remarks The returned marker is handled by `clientPlugin` in clients and
  * `routerPlugin` in routers. Generated client action functions resolve to an
  * `AsyncIterable<T>`, while route handlers may return either an `Iterable<T>`
- * or an `AsyncIterable<T>`.
+ * or an `AsyncIterable<T>`. Rouzer does not validate streamed items at runtime.
  */
 export function $type<T>(): ResponsePluginMarker<
   AsyncIterable<T>,
@@ -26,7 +26,12 @@ export function $type<T>(): ResponsePluginMarker<
   return createResponsePluginMarker(codecId)
 }
 
-/** Client plugin that decodes successful NDJSON responses. */
+/**
+ * Client plugin that decodes successful NDJSON responses.
+ *
+ * @remarks Register this plugin with `createClient({ plugins })` when the route
+ * tree contains `response: ndjson.$type<T>()` markers.
+ */
 export const clientPlugin: ClientResponsePlugin = {
   id: codecId,
   decode(response) {
@@ -37,7 +42,14 @@ export const clientPlugin: ClientResponsePlugin = {
   },
 }
 
-/** Router plugin that encodes handler results as NDJSON responses. */
+/**
+ * Router plugin that encodes handler results as NDJSON responses.
+ *
+ * @remarks Register this plugin with `createRouter({ plugins })` when the route
+ * tree contains `response: ndjson.$type<T>()` markers. Handler or generator
+ * errors are not encoded as NDJSON items; model application-level errors in the
+ * item type when clients should receive them as data.
+ */
 export const routerPlugin: RouterResponsePlugin = {
   id: codecId,
   encode(value) {

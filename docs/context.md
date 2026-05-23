@@ -112,6 +112,20 @@ Actions without a `response` marker return a raw `Response` from client action
 functions. Actions with `response: $type<T>()` use `client.json(...)` under the
 hood and return parsed JSON typed as `T`.
 
+### Response plugins
+
+Response plugins add non-JSON response codecs without changing route matching or
+request validation. A plugin package provides a compile-time response marker and
+matching runtime plugins. For NDJSON, those are `ndjson.$type<T>()`,
+`ndjson.routerPlugin`, and `ndjson.clientPlugin`.
+
+The router plugin encodes non-`Response` handler results into an HTTP `Response`.
+The client plugin decodes successful HTTP responses for generated client action
+functions. Rouzer validates plugin registration when routes are attached to a
+router or client, so routes that use an unregistered response marker fail fast
+instead of falling back to JSON. Response plugins do not automatically validate
+response payloads unless the plugin itself implements validation.
+
 ### Router
 
 `createRouter()` returns a Hattip-compatible handler. Use `.use(middleware)` to
@@ -233,6 +247,10 @@ const json = await client.json(
 )
 ```
 
+Response plugins are applied by generated client action functions. For longhand
+calls to plugin-backed routes, use `client.request(...)` for the raw `Response`
+and call the plugin subpath's decoder yourself.
+
 ### Stream newline-delimited JSON
 
 Use `ndjson.$type<T>()` when a handler should produce a sequence of JSON values
@@ -265,9 +283,18 @@ for await (const event of await client.events()) {
 }
 ```
 
+A complete runnable version lives in
+[`examples/ndjson-stream.ts`](../examples/ndjson-stream.ts).
+
 Rouzer's decoder accepts `\n` and `\r\n`, handles UTF-8 chunk boundaries, and
 throws a `SyntaxError` with a line number for malformed JSON. If a consumer stops
 reading early, the response body is cancelled.
+
+Rouzer does not convert handler or generator failures into extra NDJSON items. If
+an async generator throws after the response starts, the response stream errors
+and the client's `for await` loop throws. Model application-level stream errors
+as part of your item type, for example `{ type: 'error'; message: string }`, when
+clients should receive them as data.
 
 ### Group resource actions
 
