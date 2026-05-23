@@ -72,3 +72,12 @@ export type InferResponseMapErrors<T extends RouteResponseMap> = {
     ? [K, TError]
     : never
 }[keyof T & number]
+
+/** Extract success entries as a union of `[status, body]` pairs. */
+export type InferResponseMapSuccesses<T extends RouteResponseMap> = {
+  [K in keyof T & number]: T[K] extends Unchecked<infer TSuccess>
+    ? [K, TSuccess]
+    : T[K] extends ResponsePluginMarker<any, infer TRouter>
+      ? [K, TRouter]
+      : never
+}[keyof T & number]

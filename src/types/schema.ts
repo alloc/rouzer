@@ -9,9 +9,7 @@ import type { ResponsePluginMarker } from '../response.js'
  * @remarks Application code should usually call `$type<T>()` instead of naming
  * this marker directly.
  */
-export type { Unchecked }
-export type { UncheckedError }
-export type { ResponsePluginMarker }
+export type { ResponsePluginMarker, Unchecked, UncheckedError }
 
 /** Single response marker accepted by status-keyed response maps. */
 export type RouteResponseMarker =

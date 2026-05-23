@@ -5,7 +5,6 @@ import type { HttpAction, HttpResource, HttpRouteTree } from '../http.js'
 import {
   createResponsePluginMap,
   getResponsePluginMarkerId,
-  responsePluginMarker,
   type ClientResponsePlugin,
   type ResponsePluginMarker,
 } from '../response.js'
@@ -17,7 +16,7 @@ import {
 import type { RouteArgs } from '../types/args.js'
 import type { RouteRequest } from '../types/request.js'
 import type { InferRouteResponse } from '../types/response.js'
-import type { RouteResponseMap, RouteSchema } from '../types/schema.js'
+import type { RouteSchema } from '../types/schema.js'
 
 /** Client type inferred from an HTTP route tree passed to `createClient`. */
 export type RouzerClient<
@@ -151,10 +150,8 @@ export function createClient<
     // Handle status-keyed response maps
     if (isResponseMap(responseSchema)) {
       const status = httpResponse.status
-      const statusKey = status as keyof typeof responseSchema
-      if (statusKey in responseSchema) {
-        const marker = responseSchema[statusKey]
-        const body = await httpResponse.json()
+      if (status in responseSchema) {
+        const marker = responseSchema[status]
         if (isErrorMarker(marker)) {
           return [await httpResponse.json(), null, status] as T['$result']
         }
@@ -173,7 +170,7 @@ export function createClient<
             status,
           ] as T['$result']
         }
-        return [null, body, status] as T['$result']
+        return [null, await httpResponse.json(), status] as T['$result']
       }
       // Undeclared status — reject
       return handleResponseError(httpResponse, props)
@@ -324,17 +321,3 @@ function joinPaths(left: string, right: string) {
   return [left, right].filter(Boolean).join('/').replace(/\/+/g, '/')
 }
 
-/** Return true when the response schema is a status-keyed response map. */
-function isResponseMap(
-  response: RouteSchema['response']
-): response is RouteResponseMap {
-  return (
-    typeof response === 'object' &&
-    response !== null &&
-    !(responsePluginMarker in response)
-  )
-}
-
-function isErrorMarker(marker: unknown): boolean {
-  return marker === $error.symbol
-}

@@ -13,6 +13,13 @@ export default createRouter({ plugins: [ndjson.routerPlugin] }).use(routes, {
       })
     }
 
+    if (id === 'created') {
+      return ctx.success(201, {
+        id,
+        name: 'Grace',
+      })
+    }
+
     if (id === 'missing') {
       return ctx.error(404, {
         code: 'NOT_FOUND',

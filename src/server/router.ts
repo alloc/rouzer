@@ -222,7 +222,18 @@ class RouterObject extends MiddlewareChain {
         }
 
         if (isResponseMap(schema.response)) {
-          ;(context as any).error = createErrorHelper()
+          ;(context as any).error = createResponseHelper(
+            schema.response,
+            request,
+            responsePlugins,
+            true
+          )
+          ;(context as any).success = createResponseHelper(
+            schema.response,
+            request,
+            responsePlugins,
+            false
+          )
         }
 
         const result = await handler(context)
@@ -242,9 +253,14 @@ class RouterObject extends MiddlewareChain {
           })
         }
         if (isResponseMap(schema.response)) {
-          // Success response from a response map — find the success status
-          const status = getSuccessStatus(schema.response)
-          return Response.json(result, { status })
+          const status = getDefaultSuccessStatus(schema.response)
+          return encodeResponseMapResult(
+            schema.response,
+            status,
+            result,
+            request,
+            responsePlugins
+          )
         }
         return Response.json(result)
       }
@@ -350,9 +366,15 @@ function validateRouterResponsePlugins(
   plugins: Map<string, RouterResponsePlugin>
 ) {
   for (const route of routes) {
-    const pluginId = getResponsePluginMarkerId(route.schema.response)
-    if (pluginId && !plugins.has(pluginId)) {
-      throw missingRouterResponsePlugin(pluginId)
+    const pluginIds = isResponseMap(route.schema.response)
+      ? getResponseMapPluginIds(route.schema.response)
+      : [getResponsePluginMarkerId(route.schema.response)].filter(
+          pluginId => pluginId !== undefined
+        )
+    for (const pluginId of pluginIds) {
+      if (!plugins.has(pluginId)) {
+        throw missingRouterResponsePlugin(pluginId)
+      }
     }
   }
 }
@@ -497,39 +519,28 @@ function createOriginPattern(origin: string) {
   return new ExactPattern(origin)
 }
 
-/** Return true when the response schema is a status-keyed response map. */
-function isResponseMap(
-  response: RouteSchema['response']
-): response is RouteResponseMap {
-  return (
-    typeof response === 'object' &&
-    response !== null &&
-    !(responsePluginMarker in response)
-  )
-}
-
-import { responsePluginMarker } from '../response.js'
-
-/** Create the `ctx.error(status, body)` helper for route handlers. */
-function createErrorHelper() {
-  return (status: number, body: unknown): Response => {
-    return Response.json(body, { status })
-  }
-}
-
-/**
- * Find the first success status in a response map (a status whose marker is
- * `$type<T>()` or a plugin marker, not `$error<T>()`).
- */
-function getSuccessStatus(responseMap: RouteResponseMap): number {
-  for (const key of Object.keys(responseMap)) {
-    const status = Number(key)
-    const marker = (responseMap as any)[status]
-    if (!isErrorMarker(marker)) {
-      return status
+/** Create `ctx.error(status, body)` or `ctx.success(status, body)`. */
+function createResponseHelper(
+  responseMap: RouteResponseMap,
+  request: Request,
+  responsePlugins: Map<string, RouterResponsePlugin>,
+  error: boolean
+) {
+  return (status: number, body: unknown): Promise<Response> | Response => {
+    const marker = responseMap[status]
+    if (!marker || isErrorMarker(marker) !== error) {
+      throw new Error(
+        `Undeclared ${error ? 'error' : 'success'} response status: ${status}`
+      )
     }
+    return encodeResponseMapResult(
+      responseMap,
+      status,
+      body,
+      request,
+      responsePlugins
+    )
   }
-  return 200
 }
 
 async function encodeResponseMapResult(

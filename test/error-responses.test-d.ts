@@ -17,6 +17,7 @@ type AuthError = { code: 'UNAUTHORIZED'; message: string }
 const getUser = http.get('users/:id', {
   response: {
     200: $type<User>(),
+    201: $type<User>(),
     401: $error<AuthError>(),
     404: $error<NotFoundError>(),
   },
@@ -35,7 +36,10 @@ type GetUserResult = Awaited<ReturnType<typeof client.getUser>>
 type _ClientReturnsDiscriminatedTuple = Assert<
   Equal<
     GetUserResult,
-    [null, User, 200] | [AuthError, null, 401] | [NotFoundError, null, 404]
+    | [null, User, 200]
+    | [null, User, 201]
+    | [AuthError, null, 401]
+    | [NotFoundError, null, 404]
   >
 >
 
@@ -48,6 +52,23 @@ createRouter().use(routes, {
     if (ctx.path.id === 'unauthorized') {
       return ctx.error(401, { code: 'UNAUTHORIZED', message: 'no auth' })
     }
+    if (ctx.path.id === 'created') {
+      return ctx.success(201, { id: ctx.path.id, name: 'Ada' })
+    }
+    return { id: ctx.path.id, name: 'Ada' }
+  },
+})
+
+createRouter().use(routes, {
+  getUser(ctx) {
+    // @ts-expect-error 500 is not a declared error status.
+    ctx.error(500, { code: 'NOT_FOUND', message: 'nope' })
+    // @ts-expect-error Error body must match the selected status.
+    ctx.error(404, { code: 'UNAUTHORIZED', message: 'nope' })
+    // @ts-expect-error 404 is not a declared success status.
+    ctx.success(404, { code: 'NOT_FOUND', message: 'nope' })
+    // @ts-expect-error Success body must match the selected status.
+    ctx.success(201, { id: 123, name: 'Ada' })
     return { id: ctx.path.id, name: 'Ada' }
   },
 })

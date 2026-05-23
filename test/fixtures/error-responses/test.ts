@@ -7,6 +7,7 @@ export default createTest({
   name: 'typed error responses ($error<T> with status-keyed response map)',
   routes,
   handler,
+  clientPlugins: [ndjson.clientPlugin],
   test: async client => {
     // Success case: returns tuple [null, User, 200]
     const [error1, result1, status1] = await client.getUser({

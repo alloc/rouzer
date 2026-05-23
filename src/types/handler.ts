@@ -6,6 +6,7 @@ import type { HttpAction } from '../http.js'
 import type {
   InferRouteHandlerResult,
   InferResponseMapErrors,
+  InferResponseMapSuccesses,
 } from './response.js'
 import type { RouteResponseMap, RouteSchema } from './schema.js'
 
@@ -20,11 +21,15 @@ type RequestContext<TMiddleware extends AnyMiddlewareChain> =
  */
 export type RouteErrorResponse = Response & { __routeError__: true }
 
+/** Response returned by `ctx.success(status, body)` in route handlers. */
+export type RouteSuccessResponse = Response & { __routeSuccess__: true }
+
 export type RouteRequestHandler<
   TMiddleware extends AnyMiddlewareChain,
   TArgs extends object,
   TResult,
   TErrors = never,
+  TSuccesses = never,
 > = (
   context: RequestContext<TMiddleware> &
     TArgs &
@@ -42,6 +47,20 @@ export type RouteRequestHandler<
               ? [status: S, body: B]
               : never
           ) => RouteErrorResponse
+        }) &
+    ([TSuccesses] extends [never]
+      ? {}
+      : {
+          /**
+           * Return a declared success response with an explicit status.
+           *
+           * @remarks Useful when a response map declares multiple 2xx statuses.
+           */
+          success: <TEntry extends TSuccesses>(
+            ...args: TEntry extends [infer S extends number, infer B]
+              ? [status: S, body: B]
+              : never
+          ) => RouteSuccessResponse
         })
 ) => Promisable<TResult | Response>
 
@@ -65,7 +84,8 @@ export type InferActionHandler<
             : undefined
         },
         InferRouteHandlerResult<Extract<TAction['schema'], RouteSchema>>,
-        InferResponseMapErrors<R>
+        InferResponseMapErrors<R>,
+        InferResponseMapSuccesses<R>
       >
     : RouteRequestHandler<
         TMiddleware,
@@ -81,7 +101,8 @@ export type InferActionHandler<
             : undefined
         },
         InferRouteHandlerResult<Extract<TAction['schema'], RouteSchema>>,
-        InferResponseMapErrors<R>
+        InferResponseMapErrors<R>,
+        InferResponseMapSuccesses<R>
       >
   : TAction['method'] extends 'GET'
     ? RouteRequestHandler<

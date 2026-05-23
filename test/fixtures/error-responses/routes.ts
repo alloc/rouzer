@@ -20,6 +20,7 @@ export type AuthError = {
 export const getUser = http.get('users/:id', {
   response: {
     200: $type<User>(),
+    201: $type<User>(),
     401: $error<AuthError>(),
     404: $error<NotFoundError>(),
   },
