@@ -5,7 +5,7 @@ import type { HttpAction, HttpResource, HttpRouteTree } from '../http.js'
 import {
   createResponsePluginMap,
   getResponsePluginMarkerId,
-  responsePluginMarkerSymbol,
+  responsePluginMarker,
   type ClientResponsePlugin,
   type ResponsePluginMarker,
 } from '../response.js'
@@ -306,7 +306,7 @@ function isResponseMap(
   return (
     typeof response === 'object' &&
     response !== null &&
-    !(responsePluginMarkerSymbol in response)
+    !(responsePluginMarker in response)
   )
 }
 

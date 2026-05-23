@@ -499,11 +499,11 @@ function isResponseMap(
   return (
     typeof response === 'object' &&
     response !== null &&
-    !(responsePluginMarkerSymbol in response)
+    !(responsePluginMarker in response)
   )
 }
 
-import { responsePluginMarkerSymbol } from '../response.js'
+import { responsePluginMarker } from '../response.js'
 
 /** Create the `ctx.error(status, body)` helper for route handlers. */
 function createErrorHelper() {

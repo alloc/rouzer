@@ -2,9 +2,7 @@ import type { Promisable } from './common.js'
 import type { RouteRequest } from './types/request.js'
 
 /** Runtime key carried by response plugin markers. */
-export const responsePluginMarkerSymbol: unique symbol = Symbol.for(
-  'rouzer.response-plugin'
-) as any
+export const responsePluginMarker = Symbol.for('rouzer.response-plugin')
 
 /**
  * Compile-time response marker handled by a client/router response plugin pair.
@@ -17,7 +15,7 @@ export type ResponsePluginMarker<
   TRouter = TClient,
   TId extends string = string,
 > = {
-  readonly [responsePluginMarkerSymbol]: {
+  readonly [responsePluginMarker]: {
     readonly id: TId
     readonly client: TClient
     readonly router: TRouter
@@ -59,7 +57,7 @@ export function createResponsePluginMarker<
   const TId extends string = string,
 >(id: TId): ResponsePluginMarker<TClient, TRouter, TId> {
   return {
-    [responsePluginMarkerSymbol]: {
+    [responsePluginMarker]: {
       id,
       client: undefined!,
       router: undefined!,
@@ -70,7 +68,7 @@ export function createResponsePluginMarker<
 /** Get the response plugin id from a plugin marker, if present. */
 export function getResponsePluginMarkerId(value: unknown): string | undefined {
   return isResponsePluginMarker(value)
-    ? value[responsePluginMarkerSymbol].id
+    ? value[responsePluginMarker].id
     : undefined
 }
 
@@ -79,9 +77,7 @@ export function isResponsePluginMarker(
   value: unknown
 ): value is ResponsePluginMarker<unknown, unknown> {
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    responsePluginMarkerSymbol in value
+    typeof value === 'object' && value !== null && responsePluginMarker in value
   )
 }
 
