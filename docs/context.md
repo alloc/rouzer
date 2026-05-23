@@ -2,8 +2,8 @@
 
 Rouzer is for applications that want one TypeScript HTTP route tree to drive
 both the server and the client that calls it. A route tree combines URL
-patterns, named actions, HTTP method schemas, and optional compile-time response
-types.
+patterns, named actions, HTTP method schemas, and optional compile-time JSON or
+NDJSON response types.
 
 ## When to use Rouzer
 
@@ -18,8 +18,8 @@ Use Rouzer when:
   produced by a separate OpenAPI build step
 
 Rouzer is not a response validation library, an OpenAPI generator, or a complete
-server framework. It focuses on typed route contracts, validation, routing, and a
-small client wrapper.
+server framework. It focuses on typed route contracts, request validation,
+routing, and a small client wrapper.
 
 ## Core abstractions
 
@@ -79,9 +79,9 @@ them out of resource/base-path composition.
 
 Method schemas describe the request pieces Rouzer should validate:
 
-| Action helper                         | Request schemas                        | Notes            |
-| ------------------------------------- | -------------------------------------- | ---------------- |
-| `http.get(...)`                       | `path`, `query`, `headers`, `response` | No request body. |
+| Action helper                     | Request schemas                        | Notes            |
+| --------------------------------- | -------------------------------------- | ---------------- |
+| `http.get(...)`                   | `path`, `query`, `headers`, `response` | No request body. |
 | `http.post/put/patch/delete(...)` | `path`, `body`, `headers`, `response`  | No query schema. |
 
 If you omit a `path` schema, TypeScript infers path params from the pattern and
@@ -92,15 +92,23 @@ The HTTP action API models explicit operations. It does not expose the old
 method-map `ALL` fallback route shape; declare the concrete methods your client
 and server support.
 
-### `$type<T>()`
+### `$type<T>()` and `$ndjson<T>()`
 
-`response: $type<T>()` is a TypeScript-only marker. It tells handlers and client
-action functions what response payload type to expect, but Rouzer does not
-validate response bodies at runtime.
+`response: $type<T>()` is a TypeScript-only marker for JSON response payloads.
+It tells handlers and client action functions what response payload type to
+expect, but Rouzer does not validate response bodies at runtime.
+
+`response: $ndjson<T>()` is a TypeScript-only marker for newline-delimited JSON
+response streams. Handlers return an `AsyncIterable<T>`; Rouzer serializes each
+item as one JSON line and sets the response content type to
+`application/x-ndjson; charset=utf-8`. Client action functions use
+`client.ndjson(...)` under the hood and resolve to an `AsyncIterable<T>` parsed
+from the response body. Streamed items are parsed as JSON but are not validated
+against a Zod schema.
 
 Actions without a `response` marker return a raw `Response` from client action
-functions. Actions with a `response` marker use `client.json(...)` under the hood
-and return parsed JSON typed as `T`.
+functions. Actions with `response: $type<T>()` use `client.json(...)` under the
+hood and return parsed JSON typed as `T`.
 
 ### Router
 
@@ -133,7 +141,10 @@ Handlers receive a context typed from middleware plus the action schema:
 - `GET` handlers receive `ctx.path`, `ctx.query`, and `ctx.headers`
 - mutation handlers receive `ctx.path`, `ctx.body`, and `ctx.headers`
 - handlers may return a plain JSON-serializable value or a `Response`
+- `$ndjson<T>()` handlers return an `AsyncIterable<T>` unless they return a
+  custom `Response`
 - plain values are returned with `Response.json(value)`
+- NDJSON iterables are returned as `application/x-ndjson` streams
 - return a `Response` when you need custom status, headers, or body handling
 
 `basePath` is prepended to route tree paths, `debug` adds matched-route debug
@@ -148,6 +159,8 @@ requests with an `Origin` header.
   request factory contains the full path you want to call
 - `client.json(action.request(args))` for parsed JSON and default non-2xx
   throwing
+- `client.ndjson(action.request(args))` for parsed NDJSON streams with the same
+  default non-2xx throwing
 - a client tree that mirrors `routes`, with action functions such as
   `client.profiles.get(args)` when `routes` is supplied
 
@@ -173,8 +186,9 @@ runtimes.
    `fetch`.
 5. The router matches the request, validates the matched inputs, and calls the
    handler.
-6. Plain handler results become JSON responses; explicit `Response` objects pass
-   through unchanged.
+6. Plain handler results become JSON responses, `$ndjson<T>()` handler results
+   become NDJSON streams, and explicit `Response` objects pass through
+   unchanged.
 
 On the server, `path`, `query`, and `headers` values originate as strings. Rouzer
 coerces Zod `number` schemas with `Number(value)` and Zod `boolean` schemas from
@@ -214,6 +228,37 @@ const json = await client.json(
 )
 ```
 
+### Stream newline-delimited JSON
+
+Use `$ndjson<T>()` when a handler should produce a sequence of JSON values
+without buffering the whole response:
+
+```ts
+import { $ndjson, createClient, createRouter } from 'rouzer'
+import * as http from 'rouzer/http'
+
+export const events = http.get('events', {
+  response: $ndjson<{ id: number; message: string }>(),
+})
+export const routes = { events }
+
+createRouter().use(routes, {
+  async *events() {
+    yield { id: 1, message: 'ready' }
+    yield { id: 2, message: 'done' }
+  },
+})
+
+const client = createClient({ baseURL: 'https://example.com/api/', routes })
+for await (const event of await client.events()) {
+  console.log(event.message)
+}
+```
+
+Rouzer's decoder accepts `\n` and `\r\n`, handles UTF-8 chunk boundaries, and
+throws a `SyntaxError` with a line number for malformed JSON. If a consumer stops
+reading early, the response body is cancelled.
+
 ### Group resource actions
 
 Use resources when the public API reads better as a tree or when actions share
@@ -239,12 +284,13 @@ custom headers. Return a plain value for the default `Response.json(value)` path
 
 ### Customize JSON errors
 
-By default, `client.json(...)` throws for non-2xx responses. If the response body
-is JSON, its properties are copied onto the thrown `Error`.
+By default, `client.json(...)` and `client.ndjson(...)` throw for non-2xx
+responses. If the response body is JSON, its properties are copied onto the
+thrown `Error`.
 
-`onJsonError` can override that behavior. Its return value is returned from
-`client.json(...)` as-is; Rouzer does not automatically parse a returned
-`Response` from `onJsonError`.
+`onJsonError` can override that behavior. Its return value is returned from the
+response helper as-is; Rouzer does not automatically parse a returned `Response`
+from `onJsonError`.
 
 ### Update code written for v2.0.1
 
@@ -307,6 +353,8 @@ await client.profiles.update({
   only when string params are sufficient.
 - Use `response: $type<T>()` for JSON endpoints that should have typed client
   action functions.
+- Use `response: $ndjson<T>()` for response streams where each line is a JSON
+  value and the client should consume an `AsyncIterable<T>`.
 - Name actions after domain operations (`get`, `list`, `update`, `archive`) and
   let `http.get/post/put/patch/delete` own the transport method.
 - Set `content-type: application/json` yourself when your server or middleware
@@ -314,7 +362,10 @@ await client.profiles.update({
 
 ## Constraints and gotchas
 
-- `$type<T>()` is compile-time only and does not validate response payloads.
+- `$type<T>()` and `$ndjson<T>()` are compile-time only and do not validate
+  response payloads or streamed items.
+- NDJSON support is for response streams; request bodies still use the existing
+  JSON body schema path.
 - Pathname route patterns expect an absolute client `baseURL`.
 - Resource and action keys are API names only; paths come from the pattern
   strings passed to `http.resource(...)` and action helpers.

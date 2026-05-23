@@ -1,4 +1,8 @@
-import { Unchecked } from './common.js'
+import {
+  ndjsonResponseSymbol,
+  type NdjsonResponse,
+  type Unchecked,
+} from './common.js'
 
 /**
  * Create a compile-time-only marker for an action's JSON response payload type.
@@ -22,3 +26,25 @@ export function $type<T>() {
 }
 
 $type.symbol = Symbol()
+
+/**
+ * Create a compile-time marker for newline-delimited JSON response items.
+ *
+ * @remarks `$ndjson<T>()` tells Rouzer that the server handler returns an
+ * `AsyncIterable<T>` and that generated client action functions should resolve
+ * to an `AsyncIterable<T>`. Rouzer serializes and parses JSON lines, but it does
+ * not validate streamed response items at runtime.
+ *
+ * @example
+ * ```ts
+ * import { $ndjson } from 'rouzer'
+ * import * as http from 'rouzer/http'
+ *
+ * const events = http.get('events', {
+ *   response: $ndjson<{ type: string }>(),
+ * })
+ * ```
+ */
+export function $ndjson<T>(): NdjsonResponse<T> {
+  return { [ndjsonResponseSymbol]: undefined as T }
+}

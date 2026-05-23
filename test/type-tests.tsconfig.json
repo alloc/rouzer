@@ -9,9 +9,10 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": "..",
     "paths": {
-      "rouzer": ["src/index.ts"]
+      "rouzer": ["src/index.ts"],
+      "rouzer/http": ["src/http.ts"]
     },
     "types": []
   },
-  "include": ["../src/**/*.ts", "./infer-route-body.test-d.ts"]
+  "include": ["../src/**/*.ts", "./**/*.test-d.ts"]
 }

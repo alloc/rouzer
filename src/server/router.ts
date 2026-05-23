@@ -10,8 +10,9 @@ import {
   RequestContext,
 } from 'alien-middleware'
 import * as z from 'zod'
-import { mapValues } from '../common.js'
+import { isNdjsonResponseMarker, mapValues } from '../common.js'
 import type { HttpRouteTree } from '../http.js'
+import { ndjsonResponse } from '../ndjson.js'
 import type { RouteSchema } from '../types/schema.js'
 import type { RouteRequestHandlerMap } from '../types/server.js'
 
@@ -207,6 +208,9 @@ class RouterObject extends MiddlewareChain {
         addDebugHeaders?.(context, route)
         if (result instanceof Response) {
           return result
+        }
+        if (isNdjsonResponseMarker(schema.response)) {
+          return ndjsonResponse(result as any)
         }
         return Response.json(result)
       }

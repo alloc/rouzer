@@ -1,7 +1,8 @@
 import { RoutePattern } from '@remix-run/route-pattern'
 import { createHref } from '@remix-run/route-pattern/href'
-import { Promisable, shake } from '../common.js'
+import { isNdjsonResponseMarker, Promisable, shake } from '../common.js'
 import type { HttpAction, HttpResource, HttpRouteTree } from '../http.js'
+import { decodeNdjson } from '../ndjson.js'
 import type { RouteArgs } from '../types/args.js'
 import type { RouteRequest } from '../types/request.js'
 import type { InferRouteResponse } from '../types/response.js'
@@ -15,9 +16,10 @@ export type RouzerClient<
 /**
  * Create a typed fetch client for an HTTP route tree.
  *
- * @remarks The returned client always includes `request(...)` for raw responses
- * and `json(...)` for parsed JSON. Passing `routes` also mirrors the resource
- * tree and attaches direct action functions such as `client.users.list(...)`.
+ * @remarks The returned client always includes `request(...)` for raw
+ * responses, `json(...)` for parsed JSON, and `ndjson(...)` for parsed NDJSON
+ * streams. Passing `routes` also mirrors the resource tree and attaches direct
+ * action functions such as `client.users.list(...)`.
  */
 export function createClient<
   TRoutes extends HttpRouteTree = Record<string, never>,
@@ -47,12 +49,13 @@ export function createClient<
    */
   routes?: TRoutes
   /**
-   * Custom handler for non-2xx responses from `.json()`.
+   * Custom handler for non-2xx responses from `.json()` and `.ndjson()`.
    *
-   * @remarks When provided, the return value is returned from `.json()` as-is;
-   * Rouzer does not automatically parse a `Response` returned by this hook.
+   * @remarks When provided, the return value is returned from the response
+   * helper as-is; Rouzer does not automatically parse a `Response` returned by
+   * this hook.
    */
-  onJsonError?: (response: Response) => Promisable<Response>
+  onJsonError?: (response: Response) => Promisable<unknown>
   /** Custom `fetch` implementation to use for requests. */
   fetch?: typeof globalThis.fetch
 }) {
@@ -113,28 +116,49 @@ export function createClient<
   async function json<T extends RouteRequest>(props: T): Promise<T['$result']> {
     const response = await request(props)
     if (!response.ok) {
-      if (config.onJsonError) {
-        return config.onJsonError(response)
-      }
-      const error = new Error(
-        `Request to ${props.method} ${createHref(props.path, props.args.path)} failed with status ${response.status}`
-      )
-      const contentType = response.headers.get('content-type')
-      if (contentType?.includes('application/json')) {
-        Object.assign(error, await response.json())
-      }
-      throw error
+      return handleResponseError(response, props)
     }
     return response.json()
   }
 
+  async function ndjson<T extends RouteRequest>(
+    props: T
+  ): Promise<T['$result']> {
+    const response = await request(props)
+    if (!response.ok) {
+      return handleResponseError(response, props)
+    }
+    if (!response.body) {
+      throw new Error('NDJSON response has no body')
+    }
+    return decodeNdjson(response.body) as T['$result']
+  }
+
+  async function handleResponseError<T extends RouteRequest>(
+    response: Response,
+    props: T
+  ): Promise<T['$result']> {
+    if (config.onJsonError) {
+      return config.onJsonError(response) as T['$result']
+    }
+    const error = new Error(
+      `Request to ${props.method} ${createHref(props.path, props.args.path)} failed with status ${response.status}`
+    )
+    const contentType = response.headers.get('content-type')
+    if (contentType?.includes('application/json')) {
+      Object.assign(error, await response.json())
+    }
+    throw error
+  }
+
   return {
     ...((config.routes
-      ? connectTree(config.routes, '', request, json)
+      ? connectTree(config.routes, '', request, json, ndjson)
       : null) as ClientTree<TRoutes>),
     config,
     request,
     json,
+    ndjson,
   }
 }
 
@@ -157,7 +181,9 @@ export type ClientTree<T extends HttpRouteTree, TPrefix extends string = ''> = {
  * Client action function attached for each HTTP action leaf.
  *
  * @remarks Actions whose schema has `response: $type<T>()` return parsed JSON
- * as `T`. Actions without a response marker return the raw `Response`.
+ * as `T`. Actions whose schema has `response: $ndjson<T>()` return an
+ * `AsyncIterable<T>`. Actions without a response marker return the raw
+ * `Response`.
  */
 export type RouteFunction<T extends RouteSchema, P extends string> = (
   ...p: RouteArgs<T, P> extends infer TArgs
@@ -171,7 +197,8 @@ function connectTree(
   tree: HttpRouteTree,
   prefix: string,
   request: (props: RouteRequest) => Promise<Response>,
-  json: (props: RouteRequest) => Promise<any>
+  json: (props: RouteRequest) => Promise<any>,
+  ndjson: (props: RouteRequest) => Promise<any>
 ): any {
   return Object.fromEntries(
     Object.entries(tree).map(([key, node]) => {
@@ -182,12 +209,19 @@ function connectTree(
             node.children,
             joinPaths(prefix, node.path.source),
             request,
-            json
+            json,
+            ndjson
           ),
         ]
       }
-      const path = RoutePattern.parse(joinPaths(prefix, node.path?.source ?? ''))
-      const fetch = node.schema.response ? json : request
+      const path = RoutePattern.parse(
+        joinPaths(prefix, node.path?.source ?? '')
+      )
+      const fetch = isNdjsonResponseMarker(node.schema.response)
+        ? ndjson
+        : node.schema.response
+          ? json
+          : request
       return [
         key,
         (args: RouteArgs = {}) =>

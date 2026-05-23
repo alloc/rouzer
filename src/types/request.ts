@@ -39,6 +39,6 @@ export type RouteRequestFactory<T extends RouteSchema, P extends string> = {
 
   /** Inferred argument type for this request factory. */
   $args: RouteArgs<T, P>
-  /** Inferred JSON response type for this request factory. */
+  /** Inferred response type for this request factory. */
   $response: InferRouteResponse<T>
 }

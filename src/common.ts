@@ -9,6 +9,23 @@ export type Promisable<T> = T | Promise<T>
  */
 export type Unchecked<T> = { __unchecked__: T }
 
+/** Runtime discriminator and compile-time carrier for `$ndjson<T>()`. */
+export const ndjsonResponseSymbol: unique symbol = Symbol.for(
+  'rouzer.ndjson'
+) as any
+
+/** Compile-time-only marker used by `$ndjson<T>()` for NDJSON response items. */
+export type NdjsonResponse<T> = { readonly [ndjsonResponseSymbol]: T }
+
+/** Return true when a route response marker represents an NDJSON stream. */
+export function isNdjsonResponseMarker(
+  value: unknown
+): value is NdjsonResponse<unknown> {
+  return (
+    typeof value === 'object' && value !== null && ndjsonResponseSymbol in value
+  )
+}
+
 /**
  * Map over all the keys to create a new object.
  *
