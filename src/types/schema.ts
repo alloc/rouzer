@@ -1,5 +1,5 @@
 import * as z from 'zod'
-import type { Unchecked } from '../common.js'
+import type { Unchecked, UncheckedError } from '../common.js'
 import type { ResponsePluginMarker } from '../response.js'
 
 /**
@@ -10,12 +10,30 @@ import type { ResponsePluginMarker } from '../response.js'
  * this marker directly.
  */
 export type { Unchecked }
+export type { UncheckedError }
 export type { ResponsePluginMarker }
+
+/** Single response marker accepted by HTTP action schemas. */
+export type RouteResponseMarker =
+  | Unchecked<any>
+  | UncheckedError<any>
+  | ResponsePluginMarker<any, any>
+
+/**
+ * Status-keyed response map for declaring multiple response types.
+ *
+ * @remarks Numeric keys are HTTP status codes. Use `$type<T>()` for success
+ * responses and `$error<T>()` for declared error responses.
+ */
+export type RouteResponseMap = {
+  [status: number]: RouteResponseMarker
+}
 
 /** Response marker accepted by HTTP action schemas. */
 export type RouteResponseSchema =
   | Unchecked<any>
   | ResponsePluginMarker<any, any>
+  | RouteResponseMap
 
 /** Schema shape for `GET` route methods. */
 export type QueryRouteSchema = {

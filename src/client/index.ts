@@ -5,13 +5,15 @@ import type { HttpAction, HttpResource, HttpRouteTree } from '../http.js'
 import {
   createResponsePluginMap,
   getResponsePluginMarkerId,
+  responsePluginMarkerSymbol,
   type ClientResponsePlugin,
   type ResponsePluginMarker,
 } from '../response.js'
+import { $error } from '../type.js'
 import type { RouteArgs } from '../types/args.js'
 import type { RouteRequest } from '../types/request.js'
 import type { InferRouteResponse } from '../types/response.js'
-import type { RouteSchema } from '../types/schema.js'
+import type { RouteResponseMap, RouteSchema } from '../types/schema.js'
 
 /** Client type inferred from an HTTP route tree passed to `createClient`. */
 export type RouzerClient<
@@ -140,18 +142,36 @@ export function createClient<
     props: T
   ): Promise<T['$result']> {
     const httpResponse = await request(props)
+    const responseSchema = props.schema.response
+
+    // Handle status-keyed response maps
+    if (isResponseMap(responseSchema)) {
+      const status = httpResponse.status
+      const statusKey = status as keyof typeof responseSchema
+      if (statusKey in responseSchema) {
+        const marker = responseSchema[statusKey]
+        const body = await httpResponse.json()
+        if (isErrorMarker(marker)) {
+          return [body, null, status] as T['$result']
+        }
+        return [null, body, status] as T['$result']
+      }
+      // Undeclared status — reject
+      return handleResponseError(httpResponse, props)
+    }
+
     if (!httpResponse.ok) {
       return handleResponseError(httpResponse, props)
     }
 
-    const pluginId = getResponsePluginMarkerId(props.schema.response)
+    const pluginId = getResponsePluginMarkerId(responseSchema)
     if (pluginId) {
       const plugin = responsePlugins.get(pluginId)
       if (!plugin) {
         throw missingClientResponsePlugin(pluginId)
       }
       return plugin.decode(httpResponse, {
-        marker: props.schema.response as ResponsePluginMarker<any, any>,
+        marker: responseSchema as unknown as ResponsePluginMarker<any, any>,
         request: props,
       }) as T['$result']
     }
@@ -277,4 +297,19 @@ function missingClientResponsePlugin(pluginId: string) {
 
 function joinPaths(left: string, right: string) {
   return [left, right].filter(Boolean).join('/').replace(/\/+/g, '/')
+}
+
+/** Return true when the response schema is a status-keyed response map. */
+function isResponseMap(
+  response: RouteSchema['response']
+): response is RouteResponseMap {
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    !(responsePluginMarkerSymbol in response)
+  )
+}
+
+function isErrorMarker(marker: unknown): boolean {
+  return marker === $error.symbol
 }

@@ -18,7 +18,8 @@ import {
   type ResponsePluginMarker,
   type RouterResponsePlugin,
 } from '../response.js'
-import type { RouteSchema } from '../types/schema.js'
+import { $error } from '../type.js'
+import type { RouteResponseMap, RouteSchema } from '../types/schema.js'
 import type { RouteRequestHandlerMap } from '../types/server.js'
 
 export { chain }
@@ -215,6 +216,10 @@ class RouterObject extends MiddlewareChain {
           }
         }
 
+        if (isResponseMap(schema.response)) {
+          ;(context as any).error = createErrorHelper()
+        }
+
         const result = await handler(context)
         addDebugHeaders?.(context, route)
         if (result instanceof Response) {
@@ -230,6 +235,11 @@ class RouterObject extends MiddlewareChain {
             marker: schema.response as ResponsePluginMarker<any, any>,
             request,
           })
+        }
+        if (isResponseMap(schema.response)) {
+          // Success response from a response map — find the success status
+          const status = getSuccessStatus(schema.response)
+          return Response.json(result, { status })
         }
         return Response.json(result)
       }
@@ -480,4 +490,43 @@ function createOriginPattern(origin: string) {
     )
   }
   return new ExactPattern(origin)
+}
+
+/** Return true when the response schema is a status-keyed response map. */
+function isResponseMap(
+  response: RouteSchema['response']
+): response is RouteResponseMap {
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    !(responsePluginMarkerSymbol in response)
+  )
+}
+
+import { responsePluginMarkerSymbol } from '../response.js'
+
+/** Create the `ctx.error(status, body)` helper for route handlers. */
+function createErrorHelper() {
+  return (status: number, body: unknown): Response => {
+    return Response.json(body, { status })
+  }
+}
+
+/**
+ * Find the first success status in a response map (a status whose marker is
+ * `$type<T>()` or a plugin marker, not `$error<T>()`).
+ */
+function getSuccessStatus(responseMap: RouteResponseMap): number {
+  for (const key of Object.keys(responseMap)) {
+    const status = Number(key)
+    const marker = (responseMap as any)[status]
+    if (!isErrorMarker(marker)) {
+      return status
+    }
+  }
+  return 200
+}
+
+function isErrorMarker(marker: unknown): boolean {
+  return marker === $error.symbol
 }

@@ -10,6 +10,15 @@ export type Promisable<T> = T | Promise<T>
 export type Unchecked<T> = { __unchecked__: T }
 
 /**
+ * Compile-time-only marker used by `$error<T>()` to carry a declared error
+ * response type through route declarations.
+ *
+ * @remarks Consumers usually use `$error<T>()` instead of constructing this
+ * type directly.
+ */
+export type UncheckedError<T> = { __uncheckedError__: T }
+
+/**
  * Map over all the keys to create a new object.
  *
  * @see https://radashi.js.org/reference/object/mapEntries

@@ -1,4 +1,4 @@
-import type { Unchecked } from './common.js'
+import type { Unchecked, UncheckedError } from './common.js'
 
 /**
  * Create a compile-time-only marker for an action's JSON response payload type.
@@ -22,3 +22,30 @@ export function $type<T>() {
 }
 
 $type.symbol = Symbol()
+
+/**
+ * Create a compile-time-only marker for a declared error response type.
+ *
+ * @remarks `$error<T>()` marks a non-success response branch in a status-keyed
+ * response map. On the server, handlers use `ctx.error(status, body)` to return
+ * declared errors. On the client, declared error responses resolve as part of a
+ * discriminated tuple instead of rejecting the promise.
+ *
+ * @example
+ * ```ts
+ * import { $type, $error } from 'rouzer'
+ * import * as http from 'rouzer/http'
+ *
+ * const getUser = http.get('users/:id', {
+ *   response: {
+ *     200: $type<User>(),
+ *     404: $error<{ code: string; message: string }>(),
+ *   },
+ * })
+ * ```
+ */
+export function $error<T>() {
+  return $error.symbol as unknown as UncheckedError<T>
+}
+
+$error.symbol = Symbol()
