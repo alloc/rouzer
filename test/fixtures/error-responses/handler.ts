@@ -1,7 +1,8 @@
 import { createRouter } from 'rouzer'
+import * as ndjson from 'rouzer/ndjson'
 import * as routes from './routes.js'
 
-export default createRouter().use(routes, {
+export default createRouter({ plugins: [ndjson.routerPlugin] }).use(routes, {
   getUser(ctx) {
     const id = ctx.path.id
 
@@ -23,5 +24,17 @@ export default createRouter().use(routes, {
       id,
       name: 'Ada',
     }
+  },
+  streamUsers(ctx) {
+    if (ctx.query === undefined) {
+      return [
+        { id: '1', name: 'Ada' },
+        { id: '2', name: 'Grace' },
+      ]
+    }
+    return ctx.error(404, {
+      code: 'NOT_FOUND',
+      message: 'No stream',
+    })
   },
 })

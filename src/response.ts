@@ -14,7 +14,7 @@ export type ResponsePluginMarker<
   TClient,
   TRouter = TClient,
   TId extends string = string,
-> = {
+> = Record<number, unknown> & {
   readonly [responsePluginMarker]: {
     readonly id: TId
     readonly client: TClient

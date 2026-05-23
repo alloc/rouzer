@@ -13,7 +13,7 @@ export type { Unchecked }
 export type { UncheckedError }
 export type { ResponsePluginMarker }
 
-/** Single response marker accepted by HTTP action schemas. */
+/** Single response marker accepted by status-keyed response maps. */
 export type RouteResponseMarker =
   | Unchecked<any>
   | UncheckedError<any>
@@ -22,8 +22,9 @@ export type RouteResponseMarker =
 /**
  * Status-keyed response map for declaring multiple response types.
  *
- * @remarks Numeric keys are HTTP status codes. Use `$type<T>()` for success
- * responses and `$error<T>()` for declared error responses.
+ * @remarks Numeric keys are HTTP status codes. Use `$type<T>()` or a response
+ * plugin marker for success responses and `$error<T>()` for declared error
+ * JSON responses.
  */
 export type RouteResponseMap = {
   [status: number]: RouteResponseMarker

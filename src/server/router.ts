@@ -18,7 +18,12 @@ import {
   type ResponsePluginMarker,
   type RouterResponsePlugin,
 } from '../response.js'
-import { $error } from '../type.js'
+import {
+  getDefaultSuccessStatus,
+  getResponseMapPluginIds,
+  isErrorMarker,
+  isResponseMap,
+} from '../response-map.js'
 import type { RouteResponseMap, RouteSchema } from '../types/schema.js'
 import type { RouteRequestHandlerMap } from '../types/server.js'
 
@@ -527,6 +532,35 @@ function getSuccessStatus(responseMap: RouteResponseMap): number {
   return 200
 }
 
-function isErrorMarker(marker: unknown): boolean {
-  return marker === $error.symbol
+async function encodeResponseMapResult(
+  responseMap: RouteResponseMap,
+  status: number,
+  value: unknown,
+  request: Request,
+  responsePlugins: Map<string, RouterResponsePlugin>
+): Promise<Response> {
+  const marker = responseMap[status]
+  if (!marker) {
+    throw new Error(`Undeclared response status: ${status}`)
+  }
+  if (isErrorMarker(marker)) {
+    return Response.json(value, { status })
+  }
+  const pluginId = getResponsePluginMarkerId(marker)
+  if (!pluginId) {
+    return Response.json(value, { status })
+  }
+  const plugin = responsePlugins.get(pluginId)
+  if (!plugin) {
+    throw missingRouterResponsePlugin(pluginId)
+  }
+  const response = await plugin.encode(value, {
+    marker: marker as ResponsePluginMarker<any, any>,
+    request,
+  })
+  return new Response(response.body, {
+    status,
+    statusText: response.statusText,
+    headers: response.headers,
+  })
 }

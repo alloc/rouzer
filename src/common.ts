@@ -7,7 +7,7 @@ export type Promisable<T> = T | Promise<T>
  * @remarks Consumers usually use `$type<T>()` instead of constructing this type
  * directly.
  */
-export type Unchecked<T> = { __unchecked__: T }
+export type Unchecked<T> = Record<number, unknown> & { __unchecked__: T }
 
 /**
  * Compile-time-only marker used by `$error<T>()` to carry a declared error

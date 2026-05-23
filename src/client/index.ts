@@ -9,7 +9,11 @@ import {
   type ClientResponsePlugin,
   type ResponsePluginMarker,
 } from '../response.js'
-import { $error } from '../type.js'
+import {
+  getResponseMapPluginIds,
+  isErrorMarker,
+  isResponseMap,
+} from '../response-map.js'
 import type { RouteArgs } from '../types/args.js'
 import type { RouteRequest } from '../types/request.js'
 import type { InferRouteResponse } from '../types/response.js'
@@ -152,7 +156,22 @@ export function createClient<
         const marker = responseSchema[statusKey]
         const body = await httpResponse.json()
         if (isErrorMarker(marker)) {
-          return [body, null, status] as T['$result']
+          return [await httpResponse.json(), null, status] as T['$result']
+        }
+        const pluginId = getResponsePluginMarkerId(marker)
+        if (pluginId) {
+          const plugin = responsePlugins.get(pluginId)
+          if (!plugin) {
+            throw missingClientResponsePlugin(pluginId)
+          }
+          return [
+            null,
+            await plugin.decode(httpResponse, {
+              marker: marker as ResponsePluginMarker<any, any>,
+              request: props,
+            }),
+            status,
+          ] as T['$result']
         }
         return [null, body, status] as T['$result']
       }
@@ -283,9 +302,15 @@ function validateClientResponsePlugins(
     if (node.kind === 'resource') {
       validateClientResponsePlugins(node.children, plugins)
     } else {
-      const pluginId = getResponsePluginMarkerId(node.schema.response)
-      if (pluginId && !plugins.has(pluginId)) {
-        throw missingClientResponsePlugin(pluginId)
+      const pluginIds = isResponseMap(node.schema.response)
+        ? getResponseMapPluginIds(node.schema.response)
+        : [getResponsePluginMarkerId(node.schema.response)].filter(
+            pluginId => pluginId !== undefined
+          )
+      for (const pluginId of pluginIds) {
+        if (!plugins.has(pluginId)) {
+          throw missingClientResponsePlugin(pluginId)
+        }
       }
     }
   }
