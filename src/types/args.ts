@@ -1,6 +1,10 @@
 import type { MatchParams } from '@remix-run/route-pattern/match'
 import type * as z from 'zod'
-import type { MutationRouteSchema, QueryRouteSchema, RouteSchema } from './schema.js'
+import type {
+  MutationRouteSchema,
+  QueryRouteSchema,
+  RouteSchema,
+} from './schema.js'
 
 declare class Any {
   private isAny: true
