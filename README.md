@@ -139,7 +139,7 @@ for await (const event of await client.events()) {
 
 ## Documentation
 
-- [Concepts, API selection, and v2.0.1 migration notes](docs/context.md)
+- [Concepts, API selection, and v2->v3 migration notes](docs/context.md)
 - [Runnable shared-route example](examples/basic-usage.ts)
 - [Runnable NDJSON response-stream example](examples/ndjson-stream.ts)
 - Generated declarations in the published package provide the exact signatures

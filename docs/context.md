@@ -329,10 +329,10 @@ the thrown `Error`.
 response helper as-is; Rouzer does not automatically parse a returned `Response`
 from `onJsonError`.
 
-### Update code written for v2.0.1
+### v2->v3 migration
 
 Rouzer now uses action/resource route trees for router registration and client
-shorthands. A v2.0.1 method-map route such as this:
+shorthands. In the v2->v3 migration, a method-map route such as this:
 
 ```ts
 export const profileRoute = route('profiles/:id', {
