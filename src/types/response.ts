@@ -1,4 +1,4 @@
-import type { NdjsonResponse, RouteSchema, Unchecked } from './schema.js'
+import type { ResponsePluginMarker, RouteSchema, Unchecked } from './schema.js'
 
 /** `Response` whose `.json()` method resolves to a known payload type. */
 export type RouteResponse<TResult = any> = Response & {
@@ -7,9 +7,18 @@ export type RouteResponse<TResult = any> = Response & {
 
 /** Infer the client response type from an action schema. */
 export type InferRouteResponse<T extends RouteSchema> = T extends {
-  response: NdjsonResponse<infer TItem>
+  response: ResponsePluginMarker<infer TClient, any>
 }
-  ? AsyncIterable<TItem>
+  ? TClient
+  : T extends { response: Unchecked<infer TResponse> }
+    ? TResponse
+    : void
+
+/** Infer the non-`Response` handler result type from an action schema. */
+export type InferRouteHandlerResult<T extends RouteSchema> = T extends {
+  response: ResponsePluginMarker<any, infer TRouter>
+}
+  ? TRouter
   : T extends { response: Unchecked<infer TResponse> }
     ? TResponse
     : void

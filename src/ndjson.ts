@@ -1,5 +1,49 @@
+import {
+  createResponsePluginMarker,
+  type ClientResponsePlugin,
+  type ResponsePluginMarker,
+  type RouterResponsePlugin,
+} from './response.js'
+
+const codecId = 'rouzer/ndjson'
+
 /** Values accepted by Rouzer's NDJSON response encoder. */
 export type NdjsonSource<T = unknown> = Iterable<T> | AsyncIterable<T>
+
+/**
+ * Create a compile-time marker for newline-delimited JSON response items.
+ *
+ * @remarks The returned marker is handled by `clientPlugin` in clients and
+ * `routerPlugin` in routers. Generated client action functions resolve to an
+ * `AsyncIterable<T>`, while route handlers may return either an `Iterable<T>`
+ * or an `AsyncIterable<T>`.
+ */
+export function $type<T>(): ResponsePluginMarker<
+  AsyncIterable<T>,
+  NdjsonSource<T>,
+  typeof codecId
+> {
+  return createResponsePluginMarker(codecId)
+}
+
+/** Client plugin that decodes successful NDJSON responses. */
+export const clientPlugin: ClientResponsePlugin = {
+  id: codecId,
+  decode(response) {
+    if (!response.body) {
+      throw new Error('NDJSON response has no body')
+    }
+    return decodeNdjson(response.body)
+  },
+}
+
+/** Router plugin that encodes handler results as NDJSON responses. */
+export const routerPlugin: RouterResponsePlugin = {
+  id: codecId,
+  encode(value) {
+    return ndjsonResponse(value as NdjsonSource)
+  },
+}
 
 /**
  * Encode an iterable of values as a newline-delimited JSON byte stream.

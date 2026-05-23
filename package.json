@@ -10,6 +10,10 @@
     "./http": {
       "types": "./dist/http.d.ts",
       "import": "./dist/http.js"
+    },
+    "./ndjson": {
+      "types": "./dist/ndjson.d.ts",
+      "import": "./dist/ndjson.js"
     }
   },
   "scripts": {

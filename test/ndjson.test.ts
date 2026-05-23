@@ -1,4 +1,4 @@
-import { decodeNdjson, encodeNdjson, ndjsonResponse } from 'rouzer'
+import { decodeNdjson, encodeNdjson, ndjsonResponse } from 'rouzer/ndjson'
 
 async function collect<T>(source: AsyncIterable<T>) {
   const values: T[] = []

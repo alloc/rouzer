@@ -32,7 +32,7 @@ Consider something else if:
 - you need OpenAPI-first workflows, schema files, or generated clients for other
   languages
 - you need runtime response-body validation; `response: $type<T>()` and
-  `response: $ndjson<T>()` are compile-time only
+  `response: ndjson.$type<T>()` are compile-time only
 - you want a framework that owns controllers, data loading, rendering, and
   deployment adapters
 - you cannot use ESM or Zod v4+
@@ -105,27 +105,33 @@ headers, and JSON bodies before your handler runs.
 
 ### NDJSON response streams
 
-Use `response: $ndjson<T>()` for endpoints that stream newline-delimited JSON.
-Handlers return an `AsyncIterable<T>`; Rouzer wraps it in an
-`application/x-ndjson` response. Client action functions resolve to an
-`AsyncIterable<T>`.
+Use `response: ndjson.$type<T>()` for endpoints that stream
+newline-delimited JSON. Add `ndjson.routerPlugin` to the router and
+`ndjson.clientPlugin` to the client. Handlers return an `Iterable<T>` or
+`AsyncIterable<T>`; Rouzer wraps it in an `application/x-ndjson` response.
+Client action functions resolve to an `AsyncIterable<T>`.
 
 ```ts
-import { $ndjson, createClient, createRouter } from 'rouzer'
+import { createClient, createRouter } from 'rouzer'
 import * as http from 'rouzer/http'
+import * as ndjson from 'rouzer/ndjson'
 
 export const events = http.get('events', {
-  response: $ndjson<{ id: number; message: string }>(),
+  response: ndjson.$type<{ id: number; message: string }>(),
 })
 export const routes = { events }
 
-createRouter().use(routes, {
+createRouter({ plugins: [ndjson.routerPlugin] }).use(routes, {
   async *events() {
     yield { id: 1, message: 'ready' }
   },
 })
 
-const client = createClient({ baseURL: 'https://example.com/api/', routes })
+const client = createClient({
+  baseURL: 'https://example.com/api/',
+  routes,
+  plugins: [ndjson.clientPlugin],
+})
 for await (const event of await client.events()) {
   console.log(event.message)
 }
@@ -136,5 +142,6 @@ for await (const event of await client.events()) {
 - [Concepts, API selection, and v2.0.1 migration notes](docs/context.md)
 - [Runnable shared-route example](examples/basic-usage.ts)
 - Generated declarations in the published package provide the exact signatures
-  for every public export, including the `rouzer/http` subpath.
+  for every public export, including the `rouzer/http` and `rouzer/ndjson`
+  subpaths.
 - Public TSDoc in `src/` owns symbol-level behavior and option details.

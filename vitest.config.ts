@@ -15,6 +15,7 @@ export default defineConfig({
   resolve: {
     alias: {
       'rouzer/http': path.resolve('src/http.ts'),
+      'rouzer/ndjson': path.resolve('src/ndjson.ts'),
       rouzer: path.resolve('src/index.ts'),
     },
   },

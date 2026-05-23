@@ -1,17 +1,21 @@
 import * as z from 'zod'
-import type { NdjsonResponse, Unchecked } from '../common.js'
+import type { Unchecked } from '../common.js'
+import type { ResponsePluginMarker } from '../response.js'
 
 /**
- * Compile-time-only markers used by `$type<T>()` and `$ndjson<T>()` for response
+ * Compile-time-only marker used by `$type<T>()` for unchecked JSON response
  * types.
  *
- * @remarks Application code should usually call `$type<T>()` or `$ndjson<T>()`
- * instead of naming these markers directly.
+ * @remarks Application code should usually call `$type<T>()` instead of naming
+ * this marker directly.
  */
-export type { NdjsonResponse, Unchecked }
+export type { Unchecked }
+export type { ResponsePluginMarker }
 
 /** Response marker accepted by HTTP action schemas. */
-export type RouteResponseSchema = Unchecked<any> | NdjsonResponse<any>
+export type RouteResponseSchema =
+  | Unchecked<any>
+  | ResponsePluginMarker<any, any>
 
 /** Schema shape for `GET` route methods. */
 export type QueryRouteSchema = {
@@ -23,7 +27,7 @@ export type QueryRouteSchema = {
   body?: never
   /** Optional Zod object used to validate request headers. */
   headers?: z.ZodObject<any>
-  /** Optional compile-time-only JSON or NDJSON response type marker. */
+  /** Optional compile-time-only JSON or plugin response type marker. */
   response?: RouteResponseSchema
 }
 
@@ -37,7 +41,7 @@ export type MutationRouteSchema = {
   body?: z.ZodType<any, any>
   /** Optional Zod object used to validate request headers. */
   headers?: z.ZodObject<any>
-  /** Optional compile-time-only JSON or NDJSON response type marker. */
+  /** Optional compile-time-only JSON or plugin response type marker. */
   response?: RouteResponseSchema
 }
 

@@ -3,7 +3,7 @@ import type { AnyMiddlewareChain, MiddlewareContext } from 'alien-middleware'
 import type * as z from 'zod'
 import { Promisable } from '../common.js'
 import type { HttpAction } from '../http.js'
-import type { InferRouteResponse } from './response.js'
+import type { InferRouteHandlerResult } from './response.js'
 import type { RouteSchema } from './schema.js'
 
 type RequestContext<TMiddleware extends AnyMiddlewareChain> =
@@ -35,7 +35,7 @@ export type InferActionHandler<
           ? z.infer<TAction['schema']['headers']>
           : undefined
       },
-      InferRouteResponse<Extract<TAction['schema'], RouteSchema>>
+      InferRouteHandlerResult<Extract<TAction['schema'], RouteSchema>>
     >
   : RouteRequestHandler<
       TMiddleware,
@@ -50,5 +50,5 @@ export type InferActionHandler<
           ? z.infer<TAction['schema']['headers']>
           : undefined
       },
-      InferRouteResponse<Extract<TAction['schema'], RouteSchema>>
+      InferRouteHandlerResult<Extract<TAction['schema'], RouteSchema>>
     >

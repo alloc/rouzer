@@ -1,6 +1,10 @@
 import { createTestClient } from '@hattip/adapter-test'
 import type { HattipHandler } from '@hattip/core'
-import { createClient, type RouzerClient } from 'rouzer'
+import {
+  createClient,
+  type ClientResponsePlugin,
+  type RouzerClient,
+} from 'rouzer'
 import type { HttpRouteTree } from 'rouzer/http'
 
 type CreateTestConfig<TRoutes extends HttpRouteTree, P = unknown> = {
@@ -8,6 +12,7 @@ type CreateTestConfig<TRoutes extends HttpRouteTree, P = unknown> = {
   routes: TRoutes
   handler: HattipHandler<P>
   baseURL?: string
+  clientPlugins?: readonly ClientResponsePlugin[]
   test: (client: RouzerClient<TRoutes>) => void | Promise<void>
 }
 
@@ -21,6 +26,7 @@ export function createTest<TRoutes extends HttpRouteTree, P = unknown>({
   routes,
   handler,
   baseURL = 'http://test.local',
+  clientPlugins,
   test,
 }: CreateTestConfig<TRoutes, P>): TestFixture {
   return {
@@ -29,6 +35,7 @@ export function createTest<TRoutes extends HttpRouteTree, P = unknown>({
       const client = createClient({
         baseURL,
         routes,
+        plugins: clientPlugins,
         fetch: createTestClient({
           handler,
           baseUrl: baseURL,

@@ -1,3 +1,5 @@
+import { createClient, createRouter } from 'rouzer'
+import * as ndjson from 'rouzer/ndjson'
 import { createTest } from '../shared.js'
 import handler from './handler.js'
 import { routes } from './routes.js'
@@ -14,15 +16,24 @@ export default createTest({
   name: 'NDJSON response streams are typed and parsed',
   routes,
   handler,
+  clientPlugins: [ndjson.clientPlugin],
   test: async client => {
-    await expect(collect(await client.events())).resolves.toEqual([
-      { id: 1, message: 'ready' },
-      { id: 2, message: 'done' },
-    ])
+    expect(() =>
+      createClient({ baseURL: 'http://test.local', routes })
+    ).toThrow('Missing client response plugin for rouzer/ndjson')
 
-    await expect(
-      collect(await client.ndjson(routes.events.request()))
-    ).resolves.toEqual([
+    expect(() =>
+      createRouter().use(routes, {
+        events() {
+          return []
+        },
+        fails() {
+          return []
+        },
+      })
+    ).toThrow('Missing router response plugin for rouzer/ndjson')
+
+    await expect(collect(await client.events())).resolves.toEqual([
       { id: 1, message: 'ready' },
       { id: 2, message: 'done' },
     ])

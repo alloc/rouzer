@@ -10,9 +10,14 @@ import {
   RequestContext,
 } from 'alien-middleware'
 import * as z from 'zod'
-import { isNdjsonResponseMarker, mapValues } from '../common.js'
+import { mapValues } from '../common.js'
 import type { HttpRouteTree } from '../http.js'
-import { ndjsonResponse } from '../ndjson.js'
+import {
+  createResponsePluginMap,
+  getResponsePluginMarkerId,
+  type ResponsePluginMarker,
+  type RouterResponsePlugin,
+} from '../response.js'
 import type { RouteSchema } from '../types/schema.js'
 import type { RouteRequestHandlerMap } from '../types/server.js'
 
@@ -40,6 +45,8 @@ export type RouterConfig = {
    * and logs missing route handlers to the console.
    */
   debug?: boolean
+  /** Response codec plugins used for route handler results. */
+  plugins?: readonly RouterResponsePlugin[]
   /** CORS configuration for requests with an `Origin` header. */
   cors?: {
     /**
@@ -61,25 +68,28 @@ export type RouterConfig = {
 // Internal prototype for the router instance.
 class RouterObject extends MiddlewareChain {
   basePath: string | undefined
+  readonly responsePlugins: Map<string, RouterResponsePlugin>
 
   constructor(readonly config: RouterConfig) {
     super()
     this.basePath = config.basePath?.replace(/\/?$/, '/')
+    this.responsePlugins = createResponsePluginMap(
+      config.plugins,
+      'router response'
+    )
 
     const allowOrigins = config.cors?.allowOrigins?.map(createOriginPattern)
     if (allowOrigins) {
-      super.use(
-        ((ctx: RequestContext) => {
-          const origin = ctx.request.headers.get('Origin')
-          if (
-            origin &&
-            allowOrigins &&
-            !allowOrigins.some(pattern => pattern.test(origin))
-          ) {
-            return new Response(null, { status: 403 })
-          }
-        }) as any
-      )
+      super.use(((ctx: RequestContext) => {
+        const origin = ctx.request.headers.get('Origin')
+        if (
+          origin &&
+          allowOrigins &&
+          !allowOrigins.some(pattern => pattern.test(origin))
+        ) {
+          return new Response(null, { status: 403 })
+        }
+      }) as any)
     }
   }
 
@@ -99,7 +109,7 @@ class RouterObject extends MiddlewareChain {
     routeSchemas: HttpRouteTree,
     handlers: RouteRequestHandlerMap
   ) {
-    const { config, basePath } = this
+    const { config, basePath, responsePlugins } = this
 
     const routes = flattenRoutes(
       routeSchemas,
@@ -107,6 +117,7 @@ class RouterObject extends MiddlewareChain {
       basePath ?? '',
       config.debug
     )
+    validateRouterResponsePlugins(routes, responsePlugins)
 
     const addDebugHeaders = config.debug
       ? (context: RequestContext, route: { name: string }) => {
@@ -114,7 +125,7 @@ class RouterObject extends MiddlewareChain {
         }
       : null
 
-    return super.use((async function (
+    return super.use(async function (
       context: RequestContext & { url?: URL; path?: {} }
     ) {
       const request = context.request as Request
@@ -209,12 +220,20 @@ class RouterObject extends MiddlewareChain {
         if (result instanceof Response) {
           return result
         }
-        if (isNdjsonResponseMarker(schema.response)) {
-          return ndjsonResponse(result as any)
+        const pluginId = getResponsePluginMarkerId(schema.response)
+        if (pluginId) {
+          const plugin = responsePlugins.get(pluginId)
+          if (!plugin) {
+            throw missingRouterResponsePlugin(pluginId)
+          }
+          return plugin.encode(result, {
+            marker: schema.response as ResponsePluginMarker<any, any>,
+            request,
+          })
         }
         return Response.json(result)
       }
-    }) as any)
+    } as any)
   }
 }
 
@@ -251,8 +270,8 @@ export interface Router<T extends MiddlewareTypes = any>
 /**
  * Create a Rouzer router that can be mounted by any Hattip adapter.
  *
- * @param config Optional router configuration for base path, debug behavior, and
- * CORS origin restrictions.
+ * @param config Optional router configuration for base path, debug behavior,
+ * response plugins, and CORS origin restrictions.
  * @returns A Hattip-compatible handler with `.use(...)` methods for middleware
  * and route registration.
  */
@@ -309,6 +328,22 @@ function flattenRoutes(
     }
   }
   return routes
+}
+
+function validateRouterResponsePlugins(
+  routes: Array<{ schema: RouteSchema }>,
+  plugins: Map<string, RouterResponsePlugin>
+) {
+  for (const route of routes) {
+    const pluginId = getResponsePluginMarkerId(route.schema.response)
+    if (pluginId && !plugins.has(pluginId)) {
+      throw missingRouterResponsePlugin(pluginId)
+    }
+  }
+}
+
+function missingRouterResponsePlugin(pluginId: string) {
+  return new Error(`Missing router response plugin for ${pluginId}`)
 }
 
 function joinPaths(left: string, right: string) {

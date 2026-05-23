@@ -92,19 +92,21 @@ The HTTP action API models explicit operations. It does not expose the old
 method-map `ALL` fallback route shape; declare the concrete methods your client
 and server support.
 
-### `$type<T>()` and `$ndjson<T>()`
+### `$type<T>()` and `ndjson.$type<T>()`
 
 `response: $type<T>()` is a TypeScript-only marker for JSON response payloads.
 It tells handlers and client action functions what response payload type to
 expect, but Rouzer does not validate response bodies at runtime.
 
-`response: $ndjson<T>()` is a TypeScript-only marker for newline-delimited JSON
-response streams. Handlers return an `AsyncIterable<T>`; Rouzer serializes each
-item as one JSON line and sets the response content type to
-`application/x-ndjson; charset=utf-8`. Client action functions use
-`client.ndjson(...)` under the hood and resolve to an `AsyncIterable<T>` parsed
-from the response body. Streamed items are parsed as JSON but are not validated
-against a Zod schema.
+`response: ndjson.$type<T>()` is a TypeScript-only marker for newline-delimited
+JSON response streams from the `rouzer/ndjson` subpath. Register
+`ndjson.routerPlugin` with `createRouter(...)` and `ndjson.clientPlugin` with
+`createClient(...)` for routes that use this marker. Handlers return an
+`Iterable<T>` or `AsyncIterable<T>`; Rouzer serializes each item as one JSON line
+and sets the response content type to `application/x-ndjson; charset=utf-8`.
+Client action functions resolve to an `AsyncIterable<T>` parsed from the
+response body. Streamed items are parsed as JSON but are not validated against a
+Zod schema.
 
 Actions without a `response` marker return a raw `Response` from client action
 functions. Actions with `response: $type<T>()` use `client.json(...)` under the
@@ -141,8 +143,8 @@ Handlers receive a context typed from middleware plus the action schema:
 - `GET` handlers receive `ctx.path`, `ctx.query`, and `ctx.headers`
 - mutation handlers receive `ctx.path`, `ctx.body`, and `ctx.headers`
 - handlers may return a plain JSON-serializable value or a `Response`
-- `$ndjson<T>()` handlers return an `AsyncIterable<T>` unless they return a
-  custom `Response`
+- `ndjson.$type<T>()` handlers return an `Iterable<T>` or `AsyncIterable<T>`
+  unless they return a custom `Response`
 - plain values are returned with `Response.json(value)`
 - NDJSON iterables are returned as `application/x-ndjson` streams
 - return a `Response` when you need custom status, headers, or body handling
@@ -159,8 +161,8 @@ requests with an `Origin` header.
   request factory contains the full path you want to call
 - `client.json(action.request(args))` for parsed JSON and default non-2xx
   throwing
-- `client.ndjson(action.request(args))` for parsed NDJSON streams with the same
-  default non-2xx throwing
+- response plugin support for generated client action functions, such as
+  `ndjson.clientPlugin` for NDJSON response streams
 - a client tree that mirrors `routes`, with action functions such as
   `client.profiles.get(args)` when `routes` is supplied
 
@@ -180,14 +182,17 @@ runtimes.
 ## Lifecycle
 
 1. Define shared HTTP actions/resources with `rouzer/http` and Zod schemas.
-2. Attach that route tree to a server with `createRouter().use(routes, handlers)`.
-3. Create a client with the same route tree.
+2. Attach that route tree to a server with `createRouter().use(routes, handlers)`
+   or `createRouter({ plugins }).use(routes, handlers)` when response plugins
+   are needed.
+3. Create a client with the same route tree, plus matching client response
+   plugins when needed.
 4. Client action calls validate `path`, `query`, `body`, and `headers` before
    `fetch`.
 5. The router matches the request, validates the matched inputs, and calls the
    handler.
-6. Plain handler results become JSON responses, `$ndjson<T>()` handler results
-   become NDJSON streams, and explicit `Response` objects pass through
+6. Plain handler results become JSON responses, plugin handler results become
+   plugin-encoded responses, and explicit `Response` objects pass through
    unchanged.
 
 On the server, `path`, `query`, and `headers` values originate as strings. Rouzer
@@ -230,26 +235,31 @@ const json = await client.json(
 
 ### Stream newline-delimited JSON
 
-Use `$ndjson<T>()` when a handler should produce a sequence of JSON values
+Use `ndjson.$type<T>()` when a handler should produce a sequence of JSON values
 without buffering the whole response:
 
 ```ts
-import { $ndjson, createClient, createRouter } from 'rouzer'
+import { createClient, createRouter } from 'rouzer'
 import * as http from 'rouzer/http'
+import * as ndjson from 'rouzer/ndjson'
 
 export const events = http.get('events', {
-  response: $ndjson<{ id: number; message: string }>(),
+  response: ndjson.$type<{ id: number; message: string }>(),
 })
 export const routes = { events }
 
-createRouter().use(routes, {
+createRouter({ plugins: [ndjson.routerPlugin] }).use(routes, {
   async *events() {
     yield { id: 1, message: 'ready' }
     yield { id: 2, message: 'done' }
   },
 })
 
-const client = createClient({ baseURL: 'https://example.com/api/', routes })
+const client = createClient({
+  baseURL: 'https://example.com/api/',
+  routes,
+  plugins: [ndjson.clientPlugin],
+})
 for await (const event of await client.events()) {
   console.log(event.message)
 }
@@ -284,9 +294,9 @@ custom headers. Return a plain value for the default `Response.json(value)` path
 
 ### Customize JSON errors
 
-By default, `client.json(...)` and `client.ndjson(...)` throw for non-2xx
-responses. If the response body is JSON, its properties are copied onto the
-thrown `Error`.
+By default, `client.json(...)` and generated client action functions throw for
+non-2xx responses. If the response body is JSON, its properties are copied onto
+the thrown `Error`.
 
 `onJsonError` can override that behavior. Its return value is returned from the
 response helper as-is; Rouzer does not automatically parse a returned `Response`
@@ -353,8 +363,9 @@ await client.profiles.update({
   only when string params are sufficient.
 - Use `response: $type<T>()` for JSON endpoints that should have typed client
   action functions.
-- Use `response: $ndjson<T>()` for response streams where each line is a JSON
-  value and the client should consume an `AsyncIterable<T>`.
+- Use `response: ndjson.$type<T>()` plus `ndjson.routerPlugin` and
+  `ndjson.clientPlugin` for response streams where each line is a JSON value and
+  the client should consume an `AsyncIterable<T>`.
 - Name actions after domain operations (`get`, `list`, `update`, `archive`) and
   let `http.get/post/put/patch/delete` own the transport method.
 - Set `content-type: application/json` yourself when your server or middleware
@@ -362,10 +373,12 @@ await client.profiles.update({
 
 ## Constraints and gotchas
 
-- `$type<T>()` and `$ndjson<T>()` are compile-time only and do not validate
+- `$type<T>()` and `ndjson.$type<T>()` are compile-time only and do not validate
   response payloads or streamed items.
 - NDJSON support is for response streams; request bodies still use the existing
   JSON body schema path.
+- Routes that use a response plugin fail fast if the matching client or router
+  plugin is not registered.
 - Pathname route patterns expect an absolute client `baseURL`.
 - Resource and action keys are API names only; paths come from the pattern
   strings passed to `http.resource(...)` and action helpers.
