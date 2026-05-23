@@ -6,14 +6,14 @@ and Zod validation between a Hattip-compatible server and a typed fetch client.
 ## What it does
 
 A Rouzer HTTP route tree defines URL patterns, named actions, method schemas, and
-optional JSON or newline-delimited JSON response types once, then reuses that
-contract to:
+optional JSON, error, or newline-delimited JSON response types once, then reuses
+that contract to:
 
 - validate client arguments before `fetch`
 - match and validate server requests before handlers run
 - type handler context from path, query/body, headers, and middleware
 - attach typed client action functions such as `client.profiles.get(...)`
-- parse typed JSON responses and typed NDJSON response streams
+- parse typed JSON responses, declared error responses, and NDJSON streams
 
 Rouzer optimizes for shared TypeScript route modules over language-agnostic API
 schemas or generated SDKs.
@@ -31,8 +31,8 @@ Consider something else if:
 
 - you need OpenAPI-first workflows, schema files, or generated clients for other
   languages
-- you need runtime response-body validation; `response: $type<T>()` and
-  `response: ndjson.$type<T>()` are compile-time only
+- you need runtime response-body validation; `$type<T>()`, `$error<T>()`, and
+  `ndjson.$type<T>()` are compile-time only
 - you want a framework that owns controllers, data loading, rendering, and
   deployment adapters
 - you cannot use ESM or Zod v4+
@@ -55,7 +55,7 @@ Import the primary API from the root package and declare routes through the HTTP
 subpath:
 
 ```ts
-import { $type, chain, createClient, createRouter } from 'rouzer'
+import { $error, $type, chain, createClient, createRouter } from 'rouzer'
 import * as http from 'rouzer/http'
 ```
 
@@ -103,6 +103,49 @@ const { message } = await client.hello({
 route arguments before `fetch`; server handlers validate matched path, query,
 headers, and JSON bodies before your handler runs.
 
+### Typed status responses
+
+Use a response map when client code needs declared error statuses as data instead
+of exceptions.
+
+```ts
+import { $error, $type, createClient, createRouter } from 'rouzer'
+import * as http from 'rouzer/http'
+
+type User = { id: string; name: string }
+type NotFound = { code: 'NOT_FOUND'; message: string }
+
+export const getUser = http.get('users/:id', {
+  response: {
+    200: $type<User>(),
+    404: $error<NotFound>(),
+  },
+})
+export const routes = { getUser }
+
+createRouter().use(routes, {
+  getUser(ctx) {
+    if (ctx.path.id === 'missing') {
+      return ctx.error(404, {
+        code: 'NOT_FOUND',
+        message: 'User not found',
+      })
+    }
+    return { id: ctx.path.id, name: 'Ada' }
+  },
+})
+
+const client = createClient({
+  baseURL: 'https://example.com/api/',
+  routes,
+})
+
+const [error, user, status] = await client.getUser({ path: { id: '42' } })
+```
+
+Success entries resolve as `[null, value, status]`; declared error entries
+resolve as `[error, null, status]`.
+
 ### NDJSON response streams
 
 Use `response: ndjson.$type<T>()` for endpoints that stream
@@ -141,6 +184,7 @@ for await (const event of await client.events()) {
 
 - [Concepts, API selection, and v2->v3 migration notes](docs/context.md)
 - [Runnable shared-route example](examples/basic-usage.ts)
+- [Runnable typed error response example](examples/error-responses.ts)
 - [Runnable NDJSON response-stream example](examples/ndjson-stream.ts)
 - Generated declarations in the published package provide the exact signatures
   for every public export, including the `rouzer/http` and `rouzer/ndjson`

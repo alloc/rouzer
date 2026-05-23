@@ -241,8 +241,10 @@ export type ClientTree<T extends HttpRouteTree, TPrefix extends string = ''> = {
  * Client action function attached for each HTTP action leaf.
  *
  * @remarks Actions whose schema has `response: $type<T>()` return parsed JSON
- * as `T`. Actions whose schema has a plugin response marker return the plugin's
- * client result type. Actions without a response marker return the raw
+ * as `T`. Actions whose schema has a status-keyed response map return a tuple
+ * union of `[null, value, status]` success entries and `[error, null, status]`
+ * error entries. Actions whose schema has a plugin response marker return the
+ * plugin's client result type. Actions without a response marker return the raw
  * `Response`.
  */
 export type RouteFunction<T extends RouteSchema, P extends string> = (
@@ -320,4 +322,3 @@ function missingClientResponsePlugin(pluginId: string) {
 function joinPaths(left: string, right: string) {
   return [left, right].filter(Boolean).join('/').replace(/\/+/g, '/')
 }
-

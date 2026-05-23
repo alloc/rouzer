@@ -25,7 +25,14 @@ type InferResponseMapClient<T extends RouteResponseMap> = {
         : never
 }[keyof T & number]
 
-/** Infer the client response type from an action schema. */
+/**
+ * Infer the generated client action result type from an action schema.
+ *
+ * @remarks Direct JSON markers infer their payload type, plugin markers infer
+ * their client result type, and status-keyed response maps infer a tuple union
+ * of `[null, value, status]` success entries and `[error, null, status]` error
+ * entries.
+ */
 export type InferRouteResponse<T extends RouteSchema> = T extends {
   response: infer R
 }
@@ -50,7 +57,12 @@ type InferResponseMapHandlerResult<T extends RouteResponseMap> = {
       : never
 }[keyof T & number]
 
-/** Infer the non-`Response` handler result type from an action schema. */
+/**
+ * Infer the non-`Response` handler result type from an action schema.
+ *
+ * @remarks For status-keyed response maps, this includes only success result
+ * values. Declared error responses are returned with `ctx.error(status, body)`.
+ */
 export type InferRouteHandlerResult<T extends RouteSchema> = T extends {
   response: infer R
 }

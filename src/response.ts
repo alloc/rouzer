@@ -9,6 +9,8 @@ export const responsePluginMarker = Symbol.for('rouzer.response-plugin')
  *
  * @remarks `TClient` is the value returned by generated client action
  * functions. `TRouter` is the non-`Response` value accepted from route handlers.
+ * Plugin markers may be used directly as an action response or as success
+ * entries in a status-keyed response map.
  */
 export type ResponsePluginMarker<
   TClient,

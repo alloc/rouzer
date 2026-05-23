@@ -2,8 +2,8 @@
 
 Rouzer is for applications that want one TypeScript HTTP route tree to drive
 both the server and the client that calls it. A route tree combines URL
-patterns, named actions, HTTP method schemas, and optional compile-time JSON or
-NDJSON response types.
+patterns, named actions, HTTP method schemas, and optional compile-time success,
+error, or plugin response types.
 
 ## When to use Rouzer
 
@@ -92,11 +92,45 @@ The HTTP action API models explicit operations. It does not expose the old
 method-map `ALL` fallback route shape; declare the concrete methods your client
 and server support.
 
-### `$type<T>()` and `ndjson.$type<T>()`
+### Response markers and maps
 
-`response: $type<T>()` is a TypeScript-only marker for JSON response payloads.
-It tells handlers and client action functions what response payload type to
-expect, but Rouzer does not validate response bodies at runtime.
+`response: $type<T>()` is a TypeScript-only marker for JSON success payloads. It
+tells handlers and client action functions what payload type to expect, but
+Rouzer does not validate response bodies at runtime.
+
+Use a status-keyed response map when callers need to branch on declared statuses:
+
+```ts
+import { $error, $type } from 'rouzer'
+import * as http from 'rouzer/http'
+
+type User = { id: string; name: string }
+type NotFound = { code: 'NOT_FOUND'; message: string }
+
+export const getUser = http.get('users/:id', {
+  response: {
+    200: $type<User>(),
+    201: $type<User>(),
+    404: $error<NotFound>(),
+  },
+})
+```
+
+Success entries use `$type<T>()` or a response plugin marker. Error entries use
+`$error<T>()` and are encoded as JSON. Generated client action functions resolve
+declared statuses as tuples:
+
+- success: `[null, value, status]`
+- error: `[error, null, status]`
+
+Declared error statuses do not reject the client promise. Undeclared statuses
+still go through `onJsonError` or throw the default error.
+
+Handlers for response-map actions may return the default success value directly,
+use `ctx.success(status, body)` to choose a declared success status, or use
+`ctx.error(status, body)` to return a declared error status. The `ctx.error` and
+`ctx.success` helpers only accept statuses and bodies declared in the response
+map.
 
 `response: ndjson.$type<T>()` is a TypeScript-only marker for newline-delimited
 JSON response streams from the `rouzer/ndjson` subpath. Register
@@ -109,8 +143,8 @@ response body. Streamed items are parsed as JSON but are not validated against a
 Zod schema.
 
 Actions without a `response` marker return a raw `Response` from client action
-functions. Actions with `response: $type<T>()` use `client.json(...)` under the
-hood and return parsed JSON typed as `T`.
+functions. Actions with `response: $type<T>()` return parsed JSON typed as `T`.
+Actions with a response map return the tuple union described by that map.
 
 ### Response plugins
 
@@ -121,10 +155,11 @@ matching runtime plugins. For NDJSON, those are `ndjson.$type<T>()`,
 
 The router plugin encodes non-`Response` handler results into an HTTP `Response`.
 The client plugin decodes successful HTTP responses for generated client action
-functions. Rouzer validates plugin registration when routes are attached to a
-router or client, so routes that use an unregistered response marker fail fast
-instead of falling back to JSON. Response plugins do not automatically validate
-response payloads unless the plugin itself implements validation.
+functions. Plugin markers can also be success entries in a status-keyed response
+map. Rouzer validates plugin registration when routes are attached to a router or
+client, so routes that use an unregistered response marker fail fast instead of
+falling back to JSON. Response plugins do not automatically validate response
+payloads unless the plugin itself implements validation.
 
 ### Router
 
@@ -157,6 +192,8 @@ Handlers receive a context typed from middleware plus the action schema:
 - `GET` handlers receive `ctx.path`, `ctx.query`, and `ctx.headers`
 - mutation handlers receive `ctx.path`, `ctx.body`, and `ctx.headers`
 - handlers may return a plain JSON-serializable value or a `Response`
+- response-map handlers can return a default success value directly or use
+  `ctx.success(status, body)` and `ctx.error(status, body)`
 - `ndjson.$type<T>()` handlers return an `Iterable<T>` or `AsyncIterable<T>`
   unless they return a custom `Response`
 - plain values are returned with `Response.json(value)`
@@ -175,6 +212,8 @@ requests with an `Origin` header.
   request factory contains the full path you want to call
 - `client.json(action.request(args))` for parsed JSON and default non-2xx
   throwing
+- response-map support for generated client action functions, returning
+  `[error, value, status]` tuples for declared statuses
 - response plugin support for generated client action functions, such as
   `ndjson.clientPlugin` for NDJSON response streams
 - a client tree that mirrors `routes`, with action functions such as
@@ -205,9 +244,9 @@ runtimes.
    `fetch`.
 5. The router matches the request, validates the matched inputs, and calls the
    handler.
-6. Plain handler results become JSON responses, plugin handler results become
-   plugin-encoded responses, and explicit `Response` objects pass through
-   unchanged.
+6. Plain handler results become JSON responses, response-map helpers choose
+   declared statuses, plugin handler results become plugin-encoded responses, and
+   explicit `Response` objects pass through unchanged.
 
 On the server, `path`, `query`, and `headers` values originate as strings. Rouzer
 coerces Zod `number` schemas with `Number(value)` and Zod `boolean` schemas from
@@ -247,9 +286,64 @@ const json = await client.json(
 )
 ```
 
-Response plugins are applied by generated client action functions. For longhand
-calls to plugin-backed routes, use `client.request(...)` for the raw `Response`
-and call the plugin subpath's decoder yourself.
+Response maps and response plugins are applied by generated client action
+functions. For longhand calls to mapped or plugin-backed routes, use
+`client.request(...)` for the raw `Response` and decode the response yourself.
+
+### Handle declared error responses
+
+Use `$error<T>()` inside a response map when an error status is part of the route
+contract:
+
+```ts
+import { $error, $type, createClient, createRouter } from 'rouzer'
+import * as http from 'rouzer/http'
+
+type User = { id: string; name: string }
+type NotFound = { code: 'NOT_FOUND'; message: string }
+
+export const getUser = http.get('users/:id', {
+  response: {
+    200: $type<User>(),
+    404: $error<NotFound>(),
+  },
+})
+export const routes = { getUser }
+
+createRouter().use(routes, {
+  getUser(ctx) {
+    if (ctx.path.id === 'missing') {
+      return ctx.error(404, {
+        code: 'NOT_FOUND',
+        message: 'User not found',
+      })
+    }
+    return { id: ctx.path.id, name: 'Ada' }
+  },
+})
+
+const client = createClient({
+  baseURL: 'https://example.com/api/',
+  routes,
+})
+
+const [error, user, status] = await client.getUser({
+  path: { id: 'missing' },
+})
+
+if (status === 404) {
+  console.log(error.message)
+} else {
+  console.log(user.name)
+}
+```
+
+A complete runnable version lives in
+[`examples/error-responses.ts`](../examples/error-responses.ts).
+
+When a response map declares multiple success statuses, return a plain value for
+the default success status or use `ctx.success(status, body)` to choose a
+specific declared success status.
 
 ### Stream newline-delimited JSON
 
@@ -322,8 +416,8 @@ custom headers. Return a plain value for the default `Response.json(value)` path
 ### Customize JSON errors
 
 By default, `client.json(...)` and generated client action functions throw for
-non-2xx responses. If the response body is JSON, its properties are copied onto
-the thrown `Error`.
+non-2xx responses that are not declared in a response map. If the response body
+is JSON, its properties are copied onto the thrown `Error`.
 
 `onJsonError` can override that behavior. Its return value is returned from the
 response helper as-is; Rouzer does not automatically parse a returned `Response`
@@ -390,6 +484,8 @@ await client.profiles.update({
   only when string params are sufficient.
 - Use `response: $type<T>()` for JSON endpoints that should have typed client
   action functions.
+- Use response maps with `$error<T>()` when callers should handle declared error
+  statuses as typed data instead of exceptions.
 - Use `response: ndjson.$type<T>()` plus `ndjson.routerPlugin` and
   `ndjson.clientPlugin` for response streams where each line is a JSON value and
   the client should consume an `AsyncIterable<T>`.
@@ -400,10 +496,12 @@ await client.profiles.update({
 
 ## Constraints and gotchas
 
-- `$type<T>()` and `ndjson.$type<T>()` are compile-time only and do not validate
-  response payloads or streamed items.
+- `$type<T>()`, `$error<T>()`, and `ndjson.$type<T>()` are compile-time only and
+  do not validate response payloads or streamed items.
 - NDJSON support is for response streams; request bodies still use the existing
   JSON body schema path.
+- Declared `$error<T>()` responses are JSON responses. Use a custom `Response`
+  for non-JSON error payloads.
 - Routes that use a response plugin fail fast if the matching client or router
   plugin is not registered.
 - Pathname route patterns expect an absolute client `baseURL`.

@@ -1,4 +1,5 @@
 import { runBasicUsageExample } from '../examples/basic-usage.js'
+import { runErrorResponsesExample } from '../examples/error-responses.js'
 import { runNdjsonStreamExample } from '../examples/ndjson-stream.js'
 
 test('basic usage example stays runnable', async () => {
@@ -15,6 +16,19 @@ test('basic usage example stays runnable', async () => {
       includePosts: false,
       requestId: 'local',
     },
+  })
+})
+
+test('typed error response example stays runnable', async () => {
+  await expect(runErrorResponsesExample()).resolves.toEqual({
+    found: [null, { id: '42', name: 'Ada' }, 200],
+    created: [null, { id: 'created', name: 'Grace' }, 201],
+    missing: [{ code: 'NOT_FOUND', message: 'User not found' }, null, 404],
+    unauthorized: [
+      { code: 'UNAUTHORIZED', message: 'Login required' },
+      null,
+      401,
+    ],
   })
 })
 
