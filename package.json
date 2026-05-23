@@ -18,6 +18,7 @@
   },
   "scripts": {
     "build": "rm -rf dist && tsgo -b tsconfig.json",
+    "format": "prettier --write src test",
     "test": "vitest run",
     "prepublishOnly": "pnpm build"
   },
