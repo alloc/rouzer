@@ -3,10 +3,12 @@ import type { Unchecked, UncheckedError } from './common.js'
 /**
  * Create a compile-time-only marker for an action's JSON response payload type.
  *
- * @remarks `$type<T>()` does not perform runtime validation. It lets Rouzer type
- * server handler return values and client action functions for HTTP actions
- * whose responses are expected to be JSON. Use it directly as `response` for one
- * JSON success shape, or as a success entry in a status-keyed response map.
+ * @remarks `$type<T>()` does not validate handler return values at the server
+ * boundary. It lets Rouzer type server handler return values and client action
+ * functions for HTTP actions whose responses are expected to be JSON. Use it
+ * directly as `response` for one JSON success shape, or as a success entry in a
+ * status-keyed response map. Validate response data where it enters your server
+ * or client code when runtime integrity is required.
  *
  * @example
  * ```ts
@@ -28,9 +30,10 @@ $type.symbol = Symbol()
  * Create a compile-time-only marker for a declared error response type.
  *
  * @remarks `$error<T>()` marks a non-success response branch in a status-keyed
- * response map. On the server, handlers use `ctx.error(status, body)` to return
- * declared errors. On the client, declared error responses resolve as
- * `[error, null, status]` tuple entries instead of rejecting the promise.
+ * response map. It is a type contract, not a runtime validator. On the server,
+ * handlers use `ctx.error(status, body)` to return declared errors. On the
+ * client, declared error responses resolve as `[error, null, status]` tuple
+ * entries instead of rejecting the promise.
  *
  * @example
  * ```ts

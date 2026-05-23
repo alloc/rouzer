@@ -24,6 +24,8 @@ Use Rouzer if:
 
 - your server and client can import the same TypeScript route tree
 - you want Zod request validation on both sides of an HTTP boundary
+- response data is validated at data/client boundaries, not by re-checking every
+  handler return
 - a Hattip-compatible handler fits your server runtime
 - you prefer named resource/action functions over a generated client class
 
@@ -31,8 +33,8 @@ Consider something else if:
 
 - you need OpenAPI-first workflows, schema files, or generated clients for other
   languages
-- you need runtime response-body validation; `$type<T>()`, `$error<T>()`, and
-  `ndjson.$type<T>()` are compile-time only
+- you want the router to validate every response body at the server boundary;
+  `$type<T>()`, `$error<T>()`, and `ndjson.$type<T>()` are type contracts
 - you want a framework that owns controllers, data loading, rendering, and
   deployment adapters
 - you cannot use ESM or Zod v4+

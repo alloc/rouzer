@@ -17,9 +17,12 @@ Use Rouzer when:
 - generated clients should stay close to route definitions instead of being
   produced by a separate OpenAPI build step
 
-Rouzer is not a response validation library, an OpenAPI generator, or a complete
+Rouzer is not a server response validator, an OpenAPI generator, or a complete
 server framework. It focuses on typed route contracts, request validation,
-routing, and a small client wrapper.
+routing, and a small client wrapper. Response markers are type contracts; if
+response data comes from an untrusted source, validate it where it enters your
+server or client code instead of relying on the router to re-check handler
+returns.
 
 ## Core abstractions
 
@@ -96,7 +99,9 @@ and server support.
 
 `response: $type<T>()` is a TypeScript-only marker for JSON success payloads. It
 tells handlers and client action functions what payload type to expect, but
-Rouzer does not validate response bodies at runtime.
+Rouzer does not validate handler return values at the server boundary. Validate
+response data where it enters your system, such as an external API client,
+database decoder, or UI/client boundary, when runtime integrity is required.
 
 Use a status-keyed response map when callers need to branch on declared statuses:
 
@@ -496,8 +501,9 @@ await client.profiles.update({
 
 ## Constraints and gotchas
 
-- `$type<T>()`, `$error<T>()`, and `ndjson.$type<T>()` are compile-time only and
-  do not validate response payloads or streamed items.
+- `$type<T>()`, `$error<T>()`, and `ndjson.$type<T>()` are compile-time-only type
+  contracts. Rouzer does not re-validate handler return values at the server
+  boundary.
 - NDJSON support is for response streams; request bodies still use the existing
   JSON body schema path.
 - Declared `$error<T>()` responses are JSON responses. Use a custom `Response`
