@@ -233,7 +233,8 @@ const client = createClient({
 
 Default headers can be supplied with `headers`, per-request headers are merged on
 top, and a custom `fetch` implementation can be supplied for tests or non-browser
-runtimes.
+runtimes. The returned client exposes the original options as `clientConfig`, so
+route actions named `config` remain available as `client.config(...)`.
 
 ## Lifecycle
 
@@ -459,7 +460,7 @@ await client.profiles.update({
 - Export route trees from a small shared module and import that module on both
   server and client.
 - Use `rouzer/http` actions for routes that are registered with
-  `createRouter().use(...)` or `createClient({ routes })`.
+  `createRouter().use(...)` or the required `createClient({ routes })` option.
 - Add Zod schemas when you need runtime guarantees; rely on inferred path params
   only when string params are sufficient.
 - Use `response: $type<T>()` for JSON endpoints that should have typed client
@@ -489,8 +490,9 @@ await client.profiles.update({
 - Resource and action keys are API names only; paths come from the pattern
   strings passed to `http.resource(...)` and action helpers.
 - Extra `RequestInit` fields in route args, such as `signal` or `credentials`,
-  are forwarded by `createClient`; `method`, `body`, and `headers` are reserved
-  for Rouzer's action metadata and validated call arguments.
+  are forwarded by `createClient`; `method` and `body` are reserved for Rouzer's
+  action metadata and validated call arguments. Use route args or client defaults
+  for request headers.
 - The HTTP action API has no `ALL` fallback route. Declare explicit actions for
   supported methods.
 - Rouzer does not automatically set `Access-Control-Allow-Credentials`; set it in

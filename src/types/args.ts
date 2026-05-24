@@ -35,7 +35,7 @@ type MutationArgs<T> = T extends MutationRouteSchema
   : unknown
 
 /**
- * Arguments accepted by a client action function or low-level request factory.
+ * Arguments accepted by a generated client action function.
  *
  * @remarks The type is derived from an action schema and route pattern. `path`,
  * `query`, `body`, and `headers` are validated by the client before `fetch` when

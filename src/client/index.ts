@@ -58,12 +58,12 @@ export function createClient<
   /** Response codec plugins used by generated action functions. */
   plugins?: readonly ClientResponsePlugin[]
   /**
-   * Custom handler for non-2xx responses from `.json()` and generated response
-   * helpers.
+   * Custom handler for non-2xx responses from generated client action
+   * functions.
    *
-   * @remarks When provided, the return value is returned from the response
-   * helper as-is; Rouzer does not automatically parse a `Response` returned by
-   * this hook.
+   * @remarks When provided, the return value is returned from the client action
+   * as-is; Rouzer does not automatically parse a `Response` returned by this
+   * hook.
    */
   onJsonError?: (response: Response) => Promisable<unknown>
   /** Custom `fetch` implementation to use for requests. */

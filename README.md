@@ -2,6 +2,7 @@
 
 Rouzer lets you declare an HTTP route tree once and share its TypeScript types
 and Zod validation between a Hattip-compatible server and a typed fetch client.
+The client is always created from that route tree.
 
 ## What it does
 
@@ -45,7 +46,7 @@ Consider something else if:
 - Zod v4 or newer
 - a Hattip adapter when using `createRouter(...)`
 - a Fetch API implementation when using `createClient(...)`
-- an absolute `baseURL` for generated client URLs
+- an absolute `baseURL` and shared `routes` tree for generated client URLs
 
 ## Installation
 
@@ -101,9 +102,9 @@ const { message } = await client.hello({
 })
 ```
 
-`handler` can be mounted with any Hattip adapter. Client action calls validate
-route arguments before `fetch`; server handlers validate matched path, query,
-headers, and JSON bodies before your handler runs.
+`handler` can be mounted with any Hattip adapter. Generated client action calls
+validate route arguments before `fetch`; server handlers validate matched path,
+query, headers, and JSON bodies before your handler runs.
 
 ### Typed status responses
 
