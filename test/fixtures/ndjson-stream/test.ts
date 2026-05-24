@@ -38,14 +38,6 @@ export default createTest({
       { id: 2, message: 'done' },
     ])
 
-    const response = await client.request(routes.events.request())
-    expect(response.headers.get('content-type')).toBe(
-      'application/x-ndjson; charset=utf-8'
-    )
-    await expect(response.text()).resolves.toBe(
-      '{"id":1,"message":"ready"}\n{"id":2,"message":"done"}\n'
-    )
-
     await expect(client.fails()).rejects.toThrow(
       'Request to GET /fails failed with status 418'
     )

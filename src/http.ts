@@ -1,6 +1,4 @@
 import { RoutePattern } from '@remix-run/route-pattern'
-import type { RouteArgs } from './types/args.js'
-import type { RouteRequest, RouteRequestFactory } from './types/request.js'
 import type { RouteSchema } from './types/schema.js'
 
 /** HTTP methods supported by Rouzer action declarations. */
@@ -25,8 +23,6 @@ export type HttpAction<
   method: M
   /** Request validation and optional response type schema. */
   schema: T
-  /** Low-level request descriptor factory for this action. */
-  request: RouteRequestFactory<T, P>
 }
 
 /**
@@ -158,12 +154,5 @@ function action(
       ? RoutePattern.parse(pathOrSchema)
       : undefined
   schema ??= typeof pathOrSchema === 'string' ? {} : pathOrSchema
-  const request = ((args: RouteArgs = {}): RouteRequest => ({
-    schema,
-    path: path ?? RoutePattern.parse(''),
-    method,
-    args,
-    $result: undefined!,
-  })) as RouteRequestFactory<RouteSchema, string>
-  return { kind: 'action', path, method, schema, request }
+  return { kind: 'action', path, method, schema }
 }

@@ -1,5 +1,7 @@
 import type { Promisable } from './common.js'
-import type { RouteRequest } from './types/request.js'
+import type { RoutePattern } from '@remix-run/route-pattern'
+import type { RouteArgs } from './types/args.js'
+import type { RouteSchema } from './types/schema.js'
 
 /** Runtime key carried by response plugin markers. */
 export const responsePluginMarker = Symbol.for('rouzer.response-plugin')
@@ -33,9 +35,17 @@ export type ClientResponsePlugin = {
     response: Response,
     context: {
       marker: ResponsePluginMarker<any, any>
-      request: RouteRequest
+      request: ClientResponsePluginRequest
     }
   ): Promisable<unknown>
+}
+
+/** Request metadata passed to client response plugins. */
+export type ClientResponsePluginRequest = {
+  schema: RouteSchema
+  path: RoutePattern
+  method: string
+  args: RouteArgs
 }
 
 /** Router-side response plugin used by `createRouter({ plugins })`. */

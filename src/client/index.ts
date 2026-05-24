@@ -14,7 +14,6 @@ import {
   isResponseMap,
 } from '../response-map.js'
 import type { RouteArgs } from '../types/args.js'
-import type { RouteRequest } from '../types/request.js'
 import type { InferRouteResponse } from '../types/response.js'
 import type { RouteSchema } from '../types/schema.js'
 
@@ -26,9 +25,8 @@ export type RouzerClient<
 /**
  * Create a typed fetch client for an HTTP route tree.
  *
- * @remarks The returned client always includes `request(...)` for raw responses
- * and `json(...)` for parsed JSON. Passing `routes` also mirrors the resource
- * tree and attaches direct action functions such as `client.users.list(...)`.
+ * @remarks The returned client mirrors the resource tree and attaches direct
+ * action functions such as `client.users.list(...)`.
  */
 export function createClient<
   TRoutes extends HttpRouteTree = Record<string, never>,
@@ -56,7 +54,7 @@ export function createClient<
    * await client.users.list({ query: { page: 1 } })
    * ```
    */
-  routes?: TRoutes
+  routes: TRoutes
   /** Response codec plugins used by generated action functions. */
   plugins?: readonly ClientResponsePlugin[]
   /**
@@ -79,11 +77,9 @@ export function createClient<
     'client response'
   )
 
-  if (config.routes) {
-    validateClientResponsePlugins(config.routes, responsePlugins)
-  }
+  validateClientResponsePlugins(config.routes, responsePlugins)
 
-  async function request<T extends RouteRequest>({
+  async function request<T extends ClientRequest>({
     path: pathBuilder,
     method,
     args,
@@ -133,15 +129,7 @@ export function createClient<
     }) as Promise<Response & { json(): Promise<T['$result']> }>
   }
 
-  async function json<T extends RouteRequest>(props: T): Promise<T['$result']> {
-    const response = await request(props)
-    if (!response.ok) {
-      return handleResponseError(response, props)
-    }
-    return response.json()
-  }
-
-  async function response<T extends RouteRequest>(
+  async function response<T extends ClientRequest>(
     props: T
   ): Promise<T['$result']> {
     const httpResponse = await request(props)
@@ -195,7 +183,7 @@ export function createClient<
     return httpResponse.json()
   }
 
-  async function handleResponseError<T extends RouteRequest>(
+  async function handleResponseError<T extends ClientRequest>(
     response: Response,
     props: T
   ): Promise<T['$result']> {
@@ -213,13 +201,18 @@ export function createClient<
   }
 
   return {
-    ...((config.routes
-      ? connectTree(config.routes, '', request, response)
-      : null) as ClientTree<TRoutes>),
+    ...(connectTree(config.routes, '', request, response) as ClientTree<TRoutes>),
     config,
-    request,
-    json,
   }
+}
+
+/** Internal request descriptor passed from generated action functions. */
+type ClientRequest<TResult = any> = {
+  schema: RouteSchema
+  path: RoutePattern
+  method: string
+  args: RouteArgs
+  $result: TResult
 }
 
 type Join<A extends string, B extends string> = A extends ''
@@ -258,8 +251,8 @@ export type RouteFunction<T extends RouteSchema, P extends string> = (
 function connectTree(
   tree: HttpRouteTree,
   prefix: string,
-  request: (props: RouteRequest) => Promise<Response>,
-  response: (props: RouteRequest) => Promise<any>
+  request: (props: ClientRequest) => Promise<Response>,
+  response: (props: ClientRequest) => Promise<any>
 ): any {
   return Object.fromEntries(
     Object.entries(tree).map(([key, node]) => {

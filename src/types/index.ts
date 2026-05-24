@@ -1,7 +1,6 @@
 export type * from './args.js'
 export type * from './handler.js'
 export type * from './infer.js'
-export type * from './request.js'
 export type * from './response.js'
 export type * from './schema.js'
 export type * from './server.js'

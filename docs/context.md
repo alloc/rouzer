@@ -211,18 +211,16 @@ requests with an `Origin` header.
 
 ### Client
 
-`createClient({ baseURL, routes })` creates:
+`createClient({ baseURL, routes })` creates a client tree that mirrors
+`routes`, with action functions such as `client.profiles.get(args)`.
+Generated action functions include:
 
-- `client.request(action.request(args))` for a raw `Response` when the action
-  request factory contains the full path you want to call
-- `client.json(action.request(args))` for parsed JSON and default non-2xx
-  throwing
-- response-map support for generated client action functions, returning
-  `[error, value, status]` tuples for declared statuses
-- response plugin support for generated client action functions, such as
-  `ndjson.clientPlugin` for NDJSON response streams
-- a client tree that mirrors `routes`, with action functions such as
-  `client.profiles.get(args)` when `routes` is supplied
+- raw `Response` results for actions without a response schema
+- parsed JSON and default non-2xx throwing for `$type<T>()` responses
+- response-map support, returning `[error, value, status]` tuples for declared
+  statuses
+- response plugin support, such as `ndjson.clientPlugin` for NDJSON response
+  streams
 
 Prefer an absolute `baseURL` for generated client URLs:
 
@@ -260,9 +258,9 @@ string-coercion step.
 
 ## Common tasks
 
-### Choose a client call style
+### Call client actions
 
-Use client action functions for normal application calls:
+Use generated client action functions for application calls:
 
 ```ts
 await client.profiles.get({ path: { id: '42' } })
@@ -271,29 +269,6 @@ await client.profiles.update({
   body: { name: 'Ada' },
 })
 ```
-
-Use longhand calls when you need to choose response handling explicitly. The
-action request factory must include the full path you want to call, so this style
-is most convenient for top-level actions:
-
-```ts
-export const getProfile = http.get('profiles/:id', {
-  response: $type<Profile>(),
-})
-export const routes = { getProfile }
-
-const response = await client.request(
-  routes.getProfile.request({ path: { id: '42' } })
-)
-
-const json = await client.json(
-  routes.getProfile.request({ path: { id: '42' } })
-)
-```
-
-Response maps and response plugins are applied by generated client action
-functions. For longhand calls to mapped or plugin-backed routes, use
-`client.request(...)` for the raw `Response` and decode the response yourself.
 
 ### Handle declared error responses
 
@@ -420,7 +395,7 @@ custom headers. Return a plain value for the default `Response.json(value)` path
 
 ### Customize JSON errors
 
-By default, `client.json(...)` and generated client action functions throw for
+By default, generated client action functions throw for
 non-2xx responses that are not declared in a response map. If the response body
 is JSON, its properties are copied onto the thrown `Error`.
 
@@ -513,8 +488,6 @@ await client.profiles.update({
 - Pathname route patterns expect an absolute client `baseURL`.
 - Resource and action keys are API names only; paths come from the pattern
   strings passed to `http.resource(...)` and action helpers.
-- Nested action `.request(...)` factories do not include parent resource paths;
-  prefer client action functions for nested resources.
 - Extra `RequestInit` fields in route args, such as `signal` or `credentials`,
   are forwarded by `createClient`; `method`, `body`, and `headers` are reserved
   for Rouzer's action metadata and validated call arguments.

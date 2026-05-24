@@ -1,6 +1,5 @@
 import type * as z from 'zod'
 import type { MutationRouteSchema, RouteSchema } from './schema.js'
-import type { RouteRequestFactory } from './request.js'
 
 type InferRouteSchemaBody<TSchema> = TSchema extends MutationRouteSchema
   ? TSchema extends { body: infer TBody }
@@ -8,21 +7,13 @@ type InferRouteSchemaBody<TSchema> = TSchema extends MutationRouteSchema
     : unknown
   : never
 
-type InferRouteArgsBody<TArgs> = TArgs extends { body?: infer TBody }
-  ? TBody
-  : never
-
 /**
- * Infer the request body type from an action schema or request factory.
+ * Infer the request body type from an action schema.
  *
  * @remarks HTTP action schemas can be inspected with
- * `InferRouteBody<typeof action.schema>`. Request factories for mutation actions
- * infer their `body` argument type. Schemas without a body schema infer
+ * `InferRouteBody<typeof action.schema>`. Schemas without a body schema infer
  * `unknown`.
  */
-export type InferRouteBody<T> =
-  T extends RouteRequestFactory<any, any>
-    ? InferRouteArgsBody<T['$args']>
-    : T extends RouteSchema
-      ? InferRouteSchemaBody<T>
-      : never
+export type InferRouteBody<T> = T extends RouteSchema
+  ? InferRouteSchemaBody<T>
+  : never
