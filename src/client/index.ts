@@ -202,7 +202,7 @@ export function createClient<
 
   return {
     ...(connectTree(config.routes, '', request, response) as ClientTree<TRoutes>),
-    config,
+    clientConfig: config,
   }
 }
 

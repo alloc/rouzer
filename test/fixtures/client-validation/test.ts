@@ -28,6 +28,9 @@ export default {
     `)
 
     expect(fetch).not.toHaveBeenCalled()
+    expect(queryClient.clientConfig.routes).toBe(routes)
+    await expect(queryClient.config()).resolves.toBeInstanceOf(Response)
+    fetch.mockClear()
 
     const bodyClient = createClient({
       baseURL: 'http://test.local',

@@ -18,3 +18,5 @@ export const headerRoute = http.get('headers', {
     'x-token': z.string().check(z.minLength(3)),
   }),
 })
+
+export const config = http.get('config', {})
