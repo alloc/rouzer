@@ -55,6 +55,16 @@ export default {
     `)
     expect(fetch).not.toHaveBeenCalled()
 
+    const bytes = new Uint8Array([1, 2, 3])
+    await bodyClient.rawBodyRoute({ id: 'avatar' }, { body: bytes })
+    expect(fetch).toHaveBeenCalledWith(
+      new URL('http://test.local/raw/avatar'),
+      expect.objectContaining({
+        body: bytes,
+      })
+    )
+    fetch.mockClear()
+
     const headerClient = createClient({
       baseURL: 'http://test.local',
       routes,

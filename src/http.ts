@@ -1,5 +1,5 @@
 import { RoutePattern } from '@remix-run/route-pattern'
-import type { RouteSchema } from './types/schema.js'
+import type { RawBodySchema, RouteSchema } from './types/schema.js'
 
 /** HTTP methods supported by Rouzer action declarations. */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -143,6 +143,17 @@ function deleteAction(
 }
 
 export { deleteAction as delete }
+
+/** Declare a request body that is passed through to `fetch` without JSON encoding. */
+export function rawBody(): RawBodySchema {
+  return { __rawBody__: Symbol('rouzer.rawBody') } as RawBodySchema
+}
+
+export function isRawBodySchema(schema: unknown): schema is RawBodySchema {
+  return Boolean(
+    schema && typeof schema === 'object' && '__rawBody__' in schema
+  )
+}
 
 function action(
   method: HttpMethod,

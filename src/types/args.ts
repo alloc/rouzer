@@ -3,6 +3,7 @@ import type * as z from 'zod'
 import type {
   MutationRouteSchema,
   QueryRouteSchema,
+  RawBodySchema,
   RouteSchema,
 } from './schema.js'
 
@@ -20,7 +21,9 @@ type QueryInput<T> = T extends QueryRouteSchema & { query: infer TQuery }
 
 type BodyInput<T> = T extends MutationRouteSchema
   ? T extends { body: infer TBody }
-    ? z.infer<TBody>
+    ? TBody extends RawBodySchema
+      ? unknown
+      : z.infer<TBody>
     : unknown
   : unknown
 
@@ -46,10 +49,15 @@ export type RouteInput<
  * @remarks `headers` remains optional because required route headers may be
  * supplied by `createClient({ headers })` defaults.
  */
+type RouteBodyOption<T> = T extends { body: RawBodySchema }
+  ? { body: BodyInit | null }
+  : {}
+
 export type RouteOptions<T extends RouteSchema = any> = Omit<
   RequestInit,
   'method' | 'body' | 'headers'
-> & {
-  /** Headers for this request. Undefined values are removed before `fetch`. */
-  headers?: HeaderInput<T>
-}
+> &
+  RouteBodyOption<T> & {
+    /** Headers for this request. Undefined values are removed before `fetch`. */
+    headers?: HeaderInput<T>
+  }

@@ -2,7 +2,12 @@ import { RoutePattern } from '@remix-run/route-pattern'
 import { createHref } from '@remix-run/route-pattern/href'
 import type { ZodObject } from 'zod'
 import { Promisable, shake } from '../common.js'
-import type { HttpAction, HttpResource, HttpRouteTree } from '../http.js'
+import {
+  isRawBodySchema,
+  type HttpAction,
+  type HttpResource,
+  type HttpRouteTree,
+} from '../http.js'
 import {
   getResponseMapPluginIds,
   isErrorMarker,
@@ -84,7 +89,7 @@ export function createClient<
     path: pathPattern,
     method,
     input = {},
-    options: { headers, ...init } = {},
+    options: { body: rawBody, headers, ...init } = {},
     schema,
   }: T) {
     const path = schema.path
@@ -110,7 +115,9 @@ export function createClient<
     }
     let body: unknown
     if (schema.body) {
-      body = schema.body.parse(pickObjectSchemaFields(schema.body, input))
+      body = isRawBodySchema(schema.body)
+        ? rawBody
+        : schema.body.parse(pickObjectSchemaFields(schema.body, input))
     }
 
     if (headers) {
@@ -126,7 +133,11 @@ export function createClient<
     return fetch(url, {
       ...init,
       method,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: isRawBodySchema(schema.body)
+        ? (body as BodyInit | null | undefined)
+        : body !== undefined
+          ? JSON.stringify(body)
+          : undefined,
       headers: (headers ?? defaultHeaders) as HeadersInit,
     }) as Promise<Response & { json(): Promise<T['$result']> }>
   }
@@ -219,7 +230,7 @@ type ClientRequest<TResult = any> = {
   path: RoutePattern
   method: string
   input?: unknown
-  options?: RouteOptions
+  options?: RouteOptions & { body?: BodyInit | null }
   $result: TResult
 }
 

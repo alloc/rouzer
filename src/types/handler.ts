@@ -8,7 +8,13 @@ import type {
   InferResponseMapErrors,
   InferResponseMapSuccesses,
 } from './response.js'
-import type { RouteResponseMap, RouteSchema } from './schema.js'
+import type { RawBodySchema, RouteResponseMap, RouteSchema } from './schema.js'
+
+type InferHandlerBody<T> = T extends { body: infer TBody }
+  ? TBody extends RawBodySchema
+    ? undefined
+    : z.infer<TBody>
+  : undefined
 
 type RequestContext<TMiddleware extends AnyMiddlewareChain> =
   MiddlewareContext<TMiddleware>
@@ -93,9 +99,7 @@ export type InferActionHandler<
           path: TAction['schema'] extends { path: any }
             ? z.infer<TAction['schema']['path']>
             : MatchParams<TPath>
-          body: TAction['schema'] extends { body: any }
-            ? z.infer<TAction['schema']['body']>
-            : undefined
+          body: InferHandlerBody<TAction['schema']>
           headers: TAction['schema'] extends { headers: any }
             ? z.infer<TAction['schema']['headers']>
             : undefined
@@ -126,9 +130,7 @@ export type InferActionHandler<
           path: TAction['schema'] extends { path: any }
             ? z.infer<TAction['schema']['path']>
             : MatchParams<TPath>
-          body: TAction['schema'] extends { body: any }
-            ? z.infer<TAction['schema']['body']>
-            : undefined
+          body: InferHandlerBody<TAction['schema']>
           headers: TAction['schema'] extends { headers: any }
             ? z.infer<TAction['schema']['headers']>
             : undefined

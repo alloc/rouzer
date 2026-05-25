@@ -11,7 +11,7 @@ import {
 } from 'alien-middleware'
 import * as z from 'zod'
 import { mapValues } from '../common.js'
-import type { HttpRouteTree } from '../http.js'
+import { isRawBodySchema, type HttpRouteTree } from '../http.js'
 import {
   createResponsePluginMap,
   getResponsePluginMarkerId,
@@ -213,7 +213,7 @@ class RouterObject extends MiddlewareChain {
           }
         }
 
-        if (schema.body) {
+        if (schema.body && !isRawBodySchema(schema.body)) {
           const error = await parseRequestBody(context, schema.body)
           if (error) {
             addDebugHeaders?.(context, route)
