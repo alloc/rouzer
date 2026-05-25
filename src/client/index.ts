@@ -1,18 +1,19 @@
 import { RoutePattern } from '@remix-run/route-pattern'
 import { createHref } from '@remix-run/route-pattern/href'
+import type { ZodObject } from 'zod'
 import { Promisable, shake } from '../common.js'
 import type { HttpAction, HttpResource, HttpRouteTree } from '../http.js'
+import {
+  getResponseMapPluginIds,
+  isErrorMarker,
+  isResponseMap,
+} from '../response-map.js'
 import {
   createResponsePluginMap,
   getResponsePluginMarkerId,
   type ClientResponsePlugin,
   type ResponsePluginMarker,
 } from '../response.js'
-import {
-  getResponseMapPluginIds,
-  isErrorMarker,
-  isResponseMap,
-} from '../response-map.js'
 import type { RouteInput, RouteOptions } from '../types/args.js'
 import type { InferRouteResponse } from '../types/response.js'
 import type { RouteSchema } from '../types/schema.js'
@@ -79,20 +80,19 @@ export function createClient<
 
   validateClientResponsePlugins(config.routes, responsePlugins)
 
-  async function request<T extends ClientRequest>({
-    path: pathBuilder,
+  async function plainRequest<T extends ClientRequest>({
+    path: pathPattern,
     method,
-    args,
+    input = {},
+    options: { headers, ...init } = {},
     schema,
   }: T) {
-    const { input = {}, options = {} } = args
-    let { headers, ...init } = options
     const path = schema.path
       ? schema.path.parse(pickObjectSchemaFields(schema.path, input))
       : input
 
     let url: URL
-    const href = createHref(pathBuilder, path as any)
+    const href = createHref(pathPattern, path as Record<string, any>)
     if (href[0] === '/') {
       url = new URL(baseURL)
       url.pathname += href.slice(1)
@@ -104,7 +104,9 @@ export function createClient<
       const query = schema.query.parse(
         pickObjectSchemaFields(schema.query, input)
       )
-      url.search = new URLSearchParams(shake(query) as any).toString()
+      url.search = new URLSearchParams(
+        shake(query) as Record<string, string>
+      ).toString()
     }
     let body: unknown
     if (schema.body) {
@@ -118,7 +120,7 @@ export function createClient<
       headers = headers ? { ...defaultHeaders, ...headers } : defaultHeaders
     }
     if (schema.headers) {
-      headers = schema.headers.parse(headers) as any
+      headers = schema.headers.parse(headers)
     }
 
     return fetch(url, {
@@ -129,19 +131,19 @@ export function createClient<
     }) as Promise<Response & { json(): Promise<T['$result']> }>
   }
 
-  async function response<T extends ClientRequest>(
+  async function parsedRequest<T extends ClientRequest>(
     props: T
   ): Promise<T['$result']> {
-    const httpResponse = await request(props)
+    const response = await plainRequest(props)
     const responseSchema = props.schema.response
 
     // Handle status-keyed response maps
     if (isResponseMap(responseSchema)) {
-      const status = httpResponse.status
+      const status = response.status
       if (status in responseSchema) {
         const marker = responseSchema[status]
         if (isErrorMarker(marker)) {
-          return [await httpResponse.json(), null, status] as T['$result']
+          return [await response.json(), null, status] as T['$result']
         }
         const pluginId = getResponsePluginMarkerId(marker)
         if (pluginId) {
@@ -151,21 +153,21 @@ export function createClient<
           }
           return [
             null,
-            await plugin.decode(httpResponse, {
+            await plugin.decode(response, {
               marker: marker as ResponsePluginMarker<any, any>,
               request: props,
             }),
             status,
           ] as T['$result']
         }
-        return [null, await httpResponse.json(), status] as T['$result']
+        return [null, await response.json(), status] as T['$result']
       }
       // Undeclared status — reject
-      return handleResponseError(httpResponse, props)
+      return handleResponseError(response, props)
     }
 
-    if (!httpResponse.ok) {
-      return handleResponseError(httpResponse, props)
+    if (!response.ok) {
+      return handleResponseError(response, props)
     }
 
     const pluginId = getResponsePluginMarkerId(responseSchema)
@@ -174,13 +176,13 @@ export function createClient<
       if (!plugin) {
         throw missingClientResponsePlugin(pluginId)
       }
-      return plugin.decode(httpResponse, {
-        marker: responseSchema as unknown as ResponsePluginMarker<any, any>,
+      return plugin.decode(response, {
+        marker: responseSchema as ResponsePluginMarker<any, any>,
         request: props,
       }) as T['$result']
     }
 
-    return httpResponse.json()
+    return response.json()
   }
 
   async function handleResponseError<T extends ClientRequest>(
@@ -191,7 +193,7 @@ export function createClient<
       return config.onJsonError(response) as T['$result']
     }
     const error = new Error(
-      `Request to ${props.method} ${createHref(props.path, props.args.input as any)} failed with status ${response.status}`
+      `Request to ${props.method} ${createHref(props.path, props.input as Record<string, any>)} failed with status ${response.status}`
     )
     const contentType = response.headers.get('content-type')
     if (contentType?.includes('application/json')) {
@@ -204,8 +206,8 @@ export function createClient<
     ...(connectTree(
       config.routes,
       '',
-      request,
-      response
+      plainRequest,
+      parsedRequest
     ) as ClientTree<TRoutes>),
     clientConfig: config,
   }
@@ -216,10 +218,8 @@ type ClientRequest<TResult = any> = {
   schema: RouteSchema
   path: RoutePattern
   method: string
-  args: {
-    input?: unknown
-    options?: RouteOptions
-  }
+  input?: unknown
+  options?: RouteOptions
   $result: TResult
 }
 
@@ -259,8 +259,8 @@ export type RouteFunction<T extends RouteSchema, P extends string> = (
 function connectTree(
   tree: HttpRouteTree,
   prefix: string,
-  request: (props: ClientRequest) => Promise<Response>,
-  response: (props: ClientRequest) => Promise<any>
+  plainRequest: (props: ClientRequest) => Promise<Response>,
+  parsedRequest: (props: ClientRequest) => Promise<any>
 ): any {
   return Object.fromEntries(
     Object.entries(tree).map(([key, node]) => {
@@ -270,15 +270,15 @@ function connectTree(
           connectTree(
             node.children,
             joinPaths(prefix, node.path.source),
-            request,
-            response
+            plainRequest,
+            parsedRequest
           ),
         ]
       }
       const path = RoutePattern.parse(
         joinPaths(prefix, node.path?.source ?? '')
       )
-      const fetch = node.schema.response ? response : request
+      const fetch = node.schema.response ? parsedRequest : plainRequest
       return [
         key,
         (input?: unknown, options?: RouteOptions) =>
@@ -286,7 +286,8 @@ function connectTree(
             schema: node.schema,
             path,
             method: node.method,
-            args: { input, options },
+            input,
+            options,
             $result: undefined!,
           }),
       ]
@@ -320,13 +321,12 @@ function missingClientResponsePlugin(pluginId: string) {
   return new Error(`Missing client response plugin for ${pluginId}`)
 }
 
-function pickObjectSchemaFields(schema: unknown, input: unknown) {
-  const shape = (schema as any).shape
-  if (!shape || typeof input !== 'object' || input === null) {
+function pickObjectSchemaFields(schema: ZodObject, input: unknown) {
+  if (typeof input !== 'object' || input === null) {
     return input
   }
   return Object.fromEntries(
-    Object.keys(shape)
+    Object.keys(schema.shape)
       .filter(key => key in input)
       .map(key => [key, (input as Record<string, unknown>)[key]])
   )

@@ -55,7 +55,7 @@ export type MutationRouteSchema = {
   /** Mutation routes do not accept query schemas. */
   query?: never
   /** Optional Zod schema used to validate the JSON request body. */
-  body?: z.ZodType<any, any>
+  body?: z.ZodObject<any>
   /** Optional Zod object used to validate request headers. */
   headers?: z.ZodObject<any>
   /** Optional compile-time-only JSON or plugin response type marker. */

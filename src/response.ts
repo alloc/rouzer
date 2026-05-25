@@ -45,10 +45,8 @@ export type ClientResponsePluginRequest = {
   schema: RouteSchema
   path: RoutePattern
   method: string
-  args: {
-    input?: unknown
-    options?: RouteOptions
-  }
+  input?: unknown
+  options?: RouteOptions
 }
 
 /** Router-side response plugin used by `createRouter({ plugins })`. */
