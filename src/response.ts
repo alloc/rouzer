@@ -1,6 +1,6 @@
 import type { Promisable } from './common.js'
 import type { RoutePattern } from '@remix-run/route-pattern'
-import type { RouteArgs } from './types/args.js'
+import type { RouteOptions } from './types/args.js'
 import type { RouteSchema } from './types/schema.js'
 
 /** Runtime key carried by response plugin markers. */
@@ -45,7 +45,10 @@ export type ClientResponsePluginRequest = {
   schema: RouteSchema
   path: RoutePattern
   method: string
-  args: RouteArgs
+  args: {
+    input?: unknown
+    options?: RouteOptions
+  }
 }
 
 /** Router-side response plugin used by `createRouter({ plugins })`. */

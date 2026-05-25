@@ -101,16 +101,9 @@ export async function runBasicUsageExample() {
     fetch: createLocalFetch(handler),
   })
 
-  const fetched = await client.profiles.get({
-    path: { id: '42' },
-    query: { includePosts: false },
-    headers: { 'x-request-id': 'docs' },
-  })
+  const fetched = await client.profiles.get({ id: '42', includePosts: false }, { headers: { 'x-request-id': 'docs' } })
 
-  const updated = await client.profiles.update({
-    path: { id: '42' },
-    body: { name: 'Grace' },
-  })
+  const updated = await client.profiles.update({ id: '42', name: 'Grace' })
 
   return { fetched, updated }
 }

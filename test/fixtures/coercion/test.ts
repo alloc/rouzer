@@ -8,8 +8,10 @@ export default createTest({
   handler,
   test: async client => {
     let result = await client.coercionRoute({
-      path: { id: 123 },
-      query: { value: 456, active: true, optionalVal: 789 },
+      id: 123,
+      value: 456,
+      active: true,
+      optionalVal: 789,
     })
 
     expect(result).toEqual({
@@ -24,8 +26,9 @@ export default createTest({
     expect(typeof result.optionalVal).toBe('number')
 
     result = await client.coercionRoute({
-      path: { id: 123 },
-      query: { value: 456, active: true },
+      id: 123,
+      value: 456,
+      active: true,
     })
     expect(result.optionalVal).toBeUndefined()
   },

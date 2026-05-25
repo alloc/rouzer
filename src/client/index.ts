@@ -13,7 +13,7 @@ import {
   isErrorMarker,
   isResponseMap,
 } from '../response-map.js'
-import type { RouteArgs } from '../types/args.js'
+import type { RouteInput, RouteOptions } from '../types/args.js'
 import type { InferRouteResponse } from '../types/response.js'
 import type { RouteSchema } from '../types/schema.js'
 
@@ -85,13 +85,14 @@ export function createClient<
     args,
     schema,
   }: T) {
-    let { path, query, body, headers, ...init } = args
-    if (schema.path) {
-      path = schema.path.parse(path)
-    }
+    const { input = {}, options = {} } = args
+    let { headers, ...init } = options
+    const path = schema.path
+      ? schema.path.parse(pickObjectSchemaFields(schema.path, input))
+      : input
 
     let url: URL
-    const href = createHref(pathBuilder, path)
+    const href = createHref(pathBuilder, path as any)
     if (href[0] === '/') {
       url = new URL(baseURL)
       url.pathname += href.slice(1)
@@ -100,15 +101,14 @@ export function createClient<
     }
 
     if (schema.query) {
-      query = schema.query.parse(query ?? {})
-      url.search = new URLSearchParams(shake(query)).toString()
-    } else if (query) {
-      throw new Error('Unexpected query parameters')
+      const query = schema.query.parse(
+        pickObjectSchemaFields(schema.query, input)
+      )
+      url.search = new URLSearchParams(shake(query) as any).toString()
     }
+    let body: unknown
     if (schema.body) {
-      body = schema.body.parse(body !== undefined ? body : {})
-    } else if (body !== undefined) {
-      throw new Error('Unexpected body')
+      body = schema.body.parse(pickObjectSchemaFields(schema.body, input))
     }
 
     if (headers) {
@@ -191,7 +191,7 @@ export function createClient<
       return config.onJsonError(response) as T['$result']
     }
     const error = new Error(
-      `Request to ${props.method} ${createHref(props.path, props.args.path)} failed with status ${response.status}`
+      `Request to ${props.method} ${createHref(props.path, props.args.input as any)} failed with status ${response.status}`
     )
     const contentType = response.headers.get('content-type')
     if (contentType?.includes('application/json')) {
@@ -201,7 +201,12 @@ export function createClient<
   }
 
   return {
-    ...(connectTree(config.routes, '', request, response) as ClientTree<TRoutes>),
+    ...(connectTree(
+      config.routes,
+      '',
+      request,
+      response
+    ) as ClientTree<TRoutes>),
     clientConfig: config,
   }
 }
@@ -211,7 +216,10 @@ type ClientRequest<TResult = any> = {
   schema: RouteSchema
   path: RoutePattern
   method: string
-  args: RouteArgs
+  args: {
+    input?: unknown
+    options?: RouteOptions
+  }
   $result: TResult
 }
 
@@ -241,10 +249,10 @@ export type ClientTree<T extends HttpRouteTree, TPrefix extends string = ''> = {
  * `Response`.
  */
 export type RouteFunction<T extends RouteSchema, P extends string> = (
-  ...p: RouteArgs<T, P> extends infer TArgs
-    ? {} extends TArgs
-      ? [args?: TArgs]
-      : [args: TArgs]
+  ...p: RouteInput<T, P> extends infer TInput
+    ? {} extends TInput
+      ? [input?: TInput, options?: RouteOptions<T>]
+      : [input: TInput, options?: RouteOptions<T>]
     : never
 ) => Promise<T extends { response: any } ? InferRouteResponse<T> : Response>
 
@@ -273,12 +281,12 @@ function connectTree(
       const fetch = node.schema.response ? response : request
       return [
         key,
-        (args: RouteArgs = {}) =>
+        (input?: unknown, options?: RouteOptions) =>
           fetch({
             schema: node.schema,
             path,
             method: node.method,
-            args,
+            args: { input, options },
             $result: undefined!,
           }),
       ]
@@ -310,6 +318,18 @@ function validateClientResponsePlugins(
 
 function missingClientResponsePlugin(pluginId: string) {
   return new Error(`Missing client response plugin for ${pluginId}`)
+}
+
+function pickObjectSchemaFields(schema: unknown, input: unknown) {
+  const shape = (schema as any).shape
+  if (!shape || typeof input !== 'object' || input === null) {
+    return input
+  }
+  return Object.fromEntries(
+    Object.keys(shape)
+      .filter(key => key in input)
+      .map(key => [key, (input as Record<string, unknown>)[key]])
+  )
 }
 
 function joinPaths(left: string, right: string) {

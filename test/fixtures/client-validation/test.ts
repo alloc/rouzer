@@ -11,7 +11,7 @@ export default {
       fetch,
     })
 
-    await expect(queryClient.queryRoute({ query: { q: 'x' } })).rejects
+    await expect(queryClient.queryRoute({ q: 'x' })).rejects
       .toMatchInlineSnapshot(`
       [ZodError: [
         {
@@ -38,7 +38,7 @@ export default {
       fetch,
     })
 
-    await expect(bodyClient.bodyRoute({ body: { count: -1 } })).rejects
+    await expect(bodyClient.bodyRoute({ count: -1 })).rejects
       .toMatchInlineSnapshot(`
       [ZodError: [
         {
@@ -63,7 +63,7 @@ export default {
     })
 
     await expect(
-      headerClient.headerRoute({ credentials: 'include' })
+      headerClient.headerRoute(undefined, { credentials: 'include' })
     ).resolves.toBeInstanceOf(Response)
     expect(fetch).toHaveBeenCalledWith(
       new URL('http://test.local/headers'),

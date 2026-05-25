@@ -89,10 +89,10 @@ export async function runErrorResponsesExample() {
     fetch: createLocalFetch(handler),
   })
 
-  const found = await client.getUser({ path: { id: '42' } })
-  const created = await client.getUser({ path: { id: 'created' } })
-  const missing = await client.getUser({ path: { id: 'missing' } })
-  const unauthorized = await client.getUser({ path: { id: 'unauthorized' } })
+  const found = await client.getUser({ id: '42' })
+  const created = await client.getUser({ id: 'created' })
+  const missing = await client.getUser({ id: 'missing' })
+  const unauthorized = await client.getUser({ id: 'unauthorized' })
 
   return { found, created, missing, unauthorized }
 }

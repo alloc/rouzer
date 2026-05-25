@@ -10,46 +10,46 @@ declare class Any {
   private isAny: true
 }
 
-type PathArgs<T, P extends string> = T extends { path: infer TPath }
-  ? {} extends z.infer<TPath>
-    ? { [K in keyof T as 'path']?: z.infer<TPath> }
-    : { [K in keyof T as 'path']: z.infer<TPath> }
-  : MatchParams<P> extends infer TParams
-    ? {} extends TParams
-      ? { [K in keyof T as 'path']?: TParams }
-      : { [K in keyof T as 'path']: TParams }
-    : unknown
+type PathInput<T, P extends string> = T extends { path: infer TPath }
+  ? z.infer<TPath>
+  : MatchParams<P>
 
-type QueryArgs<T> = T extends QueryRouteSchema & { query: infer TQuery }
-  ? {} extends z.infer<TQuery>
-    ? { [K in keyof T as 'query']?: z.infer<TQuery> }
-    : { [K in keyof T as 'query']: z.infer<TQuery> }
+type QueryInput<T> = T extends QueryRouteSchema & { query: infer TQuery }
+  ? z.infer<TQuery>
   : unknown
 
-type MutationArgs<T> = T extends MutationRouteSchema
+type BodyInput<T> = T extends MutationRouteSchema
   ? T extends { body: infer TBody }
-    ? {} extends z.infer<TBody>
-      ? { [K in keyof T as 'body']?: z.infer<TBody> }
-      : { [K in keyof T as 'body']: z.infer<TBody> }
-    : { body?: unknown }
+    ? z.infer<TBody>
+    : unknown
   : unknown
+
+type HeaderInput<T> = T extends { headers: infer THeaders }
+  ? Partial<z.infer<THeaders>>
+  : Record<string, string | undefined>
 
 /**
- * Arguments accepted by a generated client action function.
+ * Semantic input accepted by a generated client action function.
  *
- * @remarks The type is derived from an action schema and route pattern. `path`,
- * `query`, `body`, and `headers` are validated by the client before `fetch` when
- * a matching schema exists. Other `RequestInit` fields are forwarded to `fetch`,
- * except `method`, `body`, and `headers`, which Rouzer derives from the action
- * schema and call arguments.
+ * @remarks Path params, query params, and JSON body fields are flattened into a
+ * single object. Avoid declaring duplicate keys across path/query/body schemas,
+ * since a flat input cannot distinguish their source.
  */
-export type RouteArgs<
+export type RouteInput<
   T extends RouteSchema = any,
   P extends string = string,
-> = ([T] extends [Any]
-  ? { query?: any; body?: any; path?: any }
-  : QueryArgs<T> & MutationArgs<T> & PathArgs<T, P>) &
-  Omit<RequestInit, 'method' | 'body' | 'headers'> & {
-    /** Headers for this request. Undefined values are removed before `fetch`. */
-    headers?: Record<string, string | undefined>
-  }
+> = [T] extends [Any] ? any : PathInput<T, P> & QueryInput<T> & BodyInput<T>
+
+/**
+ * Fetch options accepted as the second argument to a generated client action.
+ *
+ * @remarks `headers` remains optional because required route headers may be
+ * supplied by `createClient({ headers })` defaults.
+ */
+export type RouteOptions<T extends RouteSchema = any> = Omit<
+  RequestInit,
+  'method' | 'body' | 'headers'
+> & {
+  /** Headers for this request. Undefined values are removed before `fetch`. */
+  headers?: HeaderInput<T>
+}

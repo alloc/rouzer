@@ -97,8 +97,8 @@ const client = createClient({
 })
 
 const { message } = await client.hello({
-  path: { name: 'world' },
-  query: { excited: true },
+  name: 'world',
+  excited: true,
 })
 ```
 
@@ -143,7 +143,7 @@ const client = createClient({
   routes,
 })
 
-const [error, user, status] = await client.getUser({ path: { id: '42' } })
+const [error, user, status] = await client.getUser({ id: '42' })
 ```
 
 Success entries resolve as `[null, value, status]`; declared error entries
