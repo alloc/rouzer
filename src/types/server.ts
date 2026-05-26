@@ -1,4 +1,4 @@
-import type { AnyMiddlewareChain, MiddlewareChain } from 'alien-middleware'
+import type { AnyMiddlewareChain } from 'alien-middleware'
 import type { HttpAction, HttpResource, HttpRouteTree } from '../http.js'
 import type { InferActionHandler } from './handler.js'
 import type { Join } from './path.js'
@@ -13,7 +13,7 @@ import type { Join } from './path.js'
  */
 export type RouteRequestHandlerMap<
   TRoutes extends HttpRouteTree = HttpRouteTree,
-  TMiddleware extends AnyMiddlewareChain = MiddlewareChain,
+  TMiddleware extends AnyMiddlewareChain = never,
   TPrefix extends string = '',
 > = {
   [K in keyof TRoutes]: TRoutes[K] extends HttpResource<infer P, infer C>
