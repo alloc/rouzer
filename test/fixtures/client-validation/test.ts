@@ -65,6 +65,18 @@ export default {
     )
     fetch.mockClear()
 
+    await bodyClient.rawBodyWithoutInputRoute(bytes, {
+      headers: { 'content-type': 'application/octet-stream' },
+    })
+    expect(fetch).toHaveBeenCalledWith(
+      new URL('http://test.local/raw'),
+      expect.objectContaining({
+        body: bytes,
+        headers: { 'content-type': 'application/octet-stream' },
+      })
+    )
+    fetch.mockClear()
+
     const headerClient = createClient({
       baseURL: 'http://test.local',
       routes,

@@ -19,7 +19,12 @@ import {
   type ClientResponsePlugin,
   type ResponsePluginMarker,
 } from '../response.js'
-import type { RouteInput, RouteOptions } from '../types/args.js'
+import type {
+  RouteFetchOptions,
+  RouteInput,
+  RouteOptions,
+} from '../types/args.js'
+import type { RawBodySchema } from '../types/schema.js'
 import type { InferRouteResponse } from '../types/response.js'
 import type { RouteSchema } from '../types/schema.js'
 
@@ -259,13 +264,31 @@ export type ClientTree<T extends HttpRouteTree, TPrefix extends string = ''> = {
  * plugin's client result type. Actions without a response marker return the raw
  * `Response`.
  */
-export type RouteFunction<T extends RouteSchema, P extends string> = (
-  ...p: RouteInput<T, P> extends infer TInput
+export type RouteFunction<T extends RouteSchema, P extends string> = T extends {
+  body: RawBodySchema
+}
+  ? RouteInput<T, P> extends infer TInput
     ? {} extends TInput
-      ? [input?: TInput, options?: RouteOptions<T>]
-      : [input: TInput, options?: RouteOptions<T>]
+      ? (
+          body: BodyInit | null,
+          options?: RouteFetchOptions<T>
+        ) => Promise<
+          T extends { response: any } ? InferRouteResponse<T> : Response
+        >
+      : (
+          input: TInput,
+          options: RouteOptions<T>
+        ) => Promise<
+          T extends { response: any } ? InferRouteResponse<T> : Response
+        >
     : never
-) => Promise<T extends { response: any } ? InferRouteResponse<T> : Response>
+  : (
+      ...p: RouteInput<T, P> extends infer TInput
+        ? {} extends TInput
+          ? [input?: TInput, options?: RouteOptions<T>]
+          : [input: TInput, options?: RouteOptions<T>]
+        : never
+    ) => Promise<T extends { response: any } ? InferRouteResponse<T> : Response>
 
 function connectTree(
   tree: HttpRouteTree,
@@ -292,15 +315,20 @@ function connectTree(
       const fetch = node.schema.response ? parsedRequest : plainRequest
       return [
         key,
-        (input?: unknown, options?: RouteOptions) =>
-          fetch({
+        (input?: unknown, options?: RouteOptions) => {
+          if (isRawBodySchema(node.schema.body) && !hasRouteInput(node, path)) {
+            options = { ...options, body: input as BodyInit | null }
+            input = undefined
+          }
+          return fetch({
             schema: node.schema,
             path,
             method: node.method,
             input,
             options,
             $result: undefined!,
-          }),
+          })
+        },
       ]
     })
   )
@@ -330,6 +358,12 @@ function validateClientResponsePlugins(
 
 function missingClientResponsePlugin(pluginId: string) {
   return new Error(`Missing client response plugin for ${pluginId}`)
+}
+
+function hasRouteInput(node: HttpAction, path: RoutePattern) {
+  return Boolean(
+    node.schema.path || node.schema.query || /(^|\/)[:*]/.test(path.source)
+  )
 }
 
 function pickObjectSchemaFields(schema: ZodObject, input: unknown) {

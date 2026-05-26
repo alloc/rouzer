@@ -17,6 +17,10 @@ export const rawBodyRoute = http.post('raw/:id', {
   body: http.rawBody(),
 })
 
+export const rawBodyWithoutInputRoute = http.post('raw', {
+  body: http.rawBody(),
+})
+
 export const headerRoute = http.get('headers', {
   headers: z.object({
     'x-token': z.string().check(z.minLength(3)),

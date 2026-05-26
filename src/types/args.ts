@@ -49,15 +49,17 @@ export type RouteInput<
  * @remarks `headers` remains optional because required route headers may be
  * supplied by `createClient({ headers })` defaults.
  */
+export type RouteFetchOptions<T extends RouteSchema = any> = Omit<
+  RequestInit,
+  'method' | 'body' | 'headers'
+> & {
+  /** Headers for this request. Undefined values are removed before `fetch`. */
+  headers?: HeaderInput<T>
+}
+
 type RouteBodyOption<T> = T extends { body: RawBodySchema }
   ? { body: BodyInit | null }
   : {}
 
-export type RouteOptions<T extends RouteSchema = any> = Omit<
-  RequestInit,
-  'method' | 'body' | 'headers'
-> &
-  RouteBodyOption<T> & {
-    /** Headers for this request. Undefined values are removed before `fetch`. */
-    headers?: HeaderInput<T>
-  }
+export type RouteOptions<T extends RouteSchema = any> = RouteFetchOptions<T> &
+  RouteBodyOption<T>
