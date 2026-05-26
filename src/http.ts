@@ -144,7 +144,13 @@ function deleteAction(
 
 export { deleteAction as delete }
 
-/** Declare a request body that is passed through to `fetch` without JSON encoding. */
+/**
+ * Declare a request body that is passed through to `fetch` without JSON encoding.
+ *
+ * @remarks For routes with path or query input, pass the body as
+ * `options.body`. For raw-body routes without input, generated client actions
+ * accept the body as their first argument.
+ */
 export function rawBody(): RawBodySchema {
   return { __rawBody__: Symbol('rouzer.rawBody') } as RawBodySchema
 }

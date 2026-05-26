@@ -85,7 +85,7 @@ Method schemas describe the request pieces Rouzer should validate:
 | Action helper                     | Request schemas                        | Notes            |
 | --------------------------------- | -------------------------------------- | ---------------- |
 | `http.get(...)`                   | `path`, `query`, `headers`, `response` | No request body. |
-| `http.post/put/patch/delete(...)` | `path`, `body`, `headers`, `response`  | No query schema. |
+| `http.post/put/patch/delete(...)` | `path`, `body`, `headers`, `response`  | No query schema. `body` is a Zod object for JSON or `http.rawBody()` for pass-through payloads. |
 
 If you omit a `path` schema, TypeScript infers path params from the pattern and
 server handlers receive them as strings. Add a Zod `path` schema when you need
@@ -215,7 +215,9 @@ requests with an `Origin` header.
 `routes`, with action functions such as `client.profiles.get(args)`.
 Generated action functions accept a flattened first argument containing path,
 query, and JSON body fields. Per-request `RequestInit` options, including
-headers and abort signals, are passed as the optional second argument.
+headers and abort signals, are passed as the optional second argument. For
+`http.rawBody()` routes, the raw `BodyInit` payload is passed through to `fetch`
+without JSON encoding.
 
 Generated action functions include:
 
@@ -248,8 +250,8 @@ route actions named `config` remain available as `client.config(...)`.
    are needed.
 3. Create a client with the same route tree, plus matching client response
    plugins when needed.
-4. Client action calls validate `path`, `query`, `body`, and `headers` before
-   `fetch`.
+4. Client action calls validate `path`, `query`, JSON object `body`, and
+   `headers` before `fetch`. Raw bodies are passed through without validation.
 5. The router matches the request, validates the matched inputs, and calls the
    handler.
 6. Plain handler results become JSON responses, response-map helpers choose
@@ -259,7 +261,8 @@ route actions named `config` remain available as `client.config(...)`.
 On the server, `path`, `query`, and `headers` values originate as strings. Rouzer
 coerces Zod `number` schemas with `Number(value)` and Zod `boolean` schemas from
 `"true"` and `"false"`. JSON request bodies are parsed and validated without that
-string-coercion step.
+string-coercion step. Raw request bodies declared with `http.rawBody()` are not
+parsed by Rouzer.
 
 ## Common tasks
 
@@ -412,8 +415,26 @@ await client.uploadAvatar(
 )
 ```
 
-Path fields still live in the flat first argument. The raw body itself is passed
-as `body` in the second argument because it is a `RequestInit` value.
+When a raw-body route has path or query input, path/query fields still live in
+the flat first argument. The raw body itself is passed as `body` in the second
+argument because it is a `RequestInit` value.
+
+For raw-body routes without path or query input, the generated client action
+accepts the body as the first argument and fetch options as the second:
+
+```ts
+export const upload = http.post('uploads', {
+  body: http.rawBody(),
+})
+
+await client.upload(file, {
+  headers: { 'content-type': file.type },
+})
+```
+
+Server handlers for raw-body routes read from `ctx.request` directly with Fetch
+APIs such as `arrayBuffer()`, `blob()`, `formData()`, or `text()`. Rouzer does
+not parse or validate raw request bodies.
 
 ### Return custom responses
 
@@ -515,8 +536,10 @@ await client.profiles.update({ id: '42', name: 'Ada' })
   strings passed to `http.resource(...)` and action helpers.
 - Path, query, and JSON body fields are flattened into the first client action
   argument. Per-request `RequestInit` fields, such as `signal`, `credentials`,
-  and `headers`, belong in the second argument. `method` is reserved by Rouzer;
-  `body` is only accepted in the second argument for `http.rawBody()` actions.
+  and `headers`, belong in the second argument. `method` is reserved by Rouzer.
+  For `http.rawBody()` actions, `body` is accepted in the second argument when
+  the route has path or query input; raw-body actions without route input accept
+  the body as the first argument.
 - The HTTP action API has no `ALL` fallback route. Declare explicit actions for
   supported methods.
 - Rouzer does not automatically set `Access-Control-Allow-Credentials`; set it in

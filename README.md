@@ -14,6 +14,7 @@ that contract to:
 - match and validate server requests before handlers run
 - type handler context from path, query/body, headers, and middleware
 - attach typed client action functions such as `client.profiles.get(...)`
+- send JSON object request bodies or raw `BodyInit` payloads
 - parse typed JSON responses, declared error responses, and NDJSON streams
 
 Rouzer optimizes for shared TypeScript route modules over language-agnostic API
@@ -106,7 +107,8 @@ const { message } = await client.hello({
 validate flat route arguments before `fetch`; server handlers validate matched
 path, query, headers, and JSON bodies before your handler runs. Per-request
 headers, abort signals, and other `RequestInit` options are passed as a second
-client action argument.
+client action argument. Routes declared with `body: http.rawBody()` pass a
+`BodyInit` payload through to `fetch` without JSON encoding.
 
 ### Typed status responses
 
@@ -150,6 +152,34 @@ const [error, user, status] = await client.getUser({ id: '42' })
 
 Success entries resolve as `[null, value, status]`; declared error entries
 resolve as `[error, null, status]`.
+
+### Raw request bodies
+
+Use `http.rawBody()` when an action needs to send a `BodyInit` payload such as a
+`Blob`, `Uint8Array`, `ReadableStream`, `FormData`, or string without JSON
+encoding.
+
+```ts
+export const uploadAvatar = http.post('profiles/:id/avatar', {
+  body: http.rawBody(),
+})
+
+await client.uploadAvatar({ id: '42' }, { body: file })
+```
+
+For raw-body routes without path or query input, the generated client accepts the
+body as the first argument:
+
+```ts
+export const upload = http.post('upload', {
+  body: http.rawBody(),
+})
+
+await client.upload(file, { headers: { 'content-type': file.type } })
+```
+
+Server handlers for raw-body routes read from `ctx.request` directly with Fetch
+APIs such as `arrayBuffer()`, `blob()`, `formData()`, or `text()`.
 
 ### NDJSON response streams
 

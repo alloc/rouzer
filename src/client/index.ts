@@ -262,7 +262,9 @@ export type ClientTree<T extends HttpRouteTree, TPrefix extends string = ''> = {
  * union of `[null, value, status]` success entries and `[error, null, status]`
  * error entries. Actions whose schema has a plugin response marker return the
  * plugin's client result type. Actions without a response marker return the raw
- * `Response`.
+ * `Response`. Raw-body actions with no path or query input accept
+ * `(body, options)`; raw-body actions with route input accept
+ * `(input, { body, ...options })`.
  */
 export type RouteFunction<T extends RouteSchema, P extends string> = T extends {
   body: RawBodySchema

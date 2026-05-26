@@ -44,10 +44,12 @@ export type RouteInput<
 > = [T] extends [Any] ? any : PathInput<T, P> & QueryInput<T> & BodyInput<T>
 
 /**
- * Fetch options accepted as the second argument to a generated client action.
+ * Fetch options accepted by a generated client action.
  *
  * @remarks `headers` remains optional because required route headers may be
- * supplied by `createClient({ headers })` defaults.
+ * supplied by `createClient({ headers })` defaults. Raw-body routes with path or
+ * query input accept `body` here; raw-body routes without input accept the body
+ * as the first client action argument and these options as the second.
  */
 export type RouteFetchOptions<T extends RouteSchema = any> = Omit<
   RequestInit,
