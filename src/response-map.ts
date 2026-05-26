@@ -1,7 +1,4 @@
-import {
-  getResponsePluginMarkerId,
-  responsePluginMarker,
-} from './response.js'
+import { getResponsePluginMarkerId, responsePluginMarker } from './response.js'
 import { $error } from './type.js'
 import type { RouteResponseMap, RouteSchema } from './types/schema.js'
 
@@ -27,7 +24,9 @@ export function isSuccessMarker(marker: unknown): boolean {
 }
 
 /** Find the default success status for a direct handler result. */
-export function getResponseMapPluginIds(responseMap: RouteResponseMap): string[] {
+export function getResponseMapPluginIds(
+  responseMap: RouteResponseMap
+): string[] {
   return Object.values(responseMap).flatMap(marker => {
     const pluginId = getResponsePluginMarkerId(marker)
     return pluginId ? [pluginId] : []
