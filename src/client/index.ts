@@ -57,7 +57,7 @@ export function createClient<
    * @example
    * ```ts
    * const client = createClient({ baseURL: 'https://example.com/api/', routes })
-   * await client.users.list({ query: { page: 1 } })
+   * await client.users.list({ page: 1 })
    * ```
    */
   routes: TRoutes

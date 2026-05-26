@@ -103,8 +103,10 @@ const { message } = await client.hello({
 ```
 
 `handler` can be mounted with any Hattip adapter. Generated client action calls
-validate route arguments before `fetch`; server handlers validate matched path,
-query, headers, and JSON bodies before your handler runs.
+validate flat route arguments before `fetch`; server handlers validate matched
+path, query, headers, and JSON bodies before your handler runs. Per-request
+headers, abort signals, and other `RequestInit` options are passed as a second
+client action argument.
 
 ### Typed status responses
 
@@ -185,7 +187,7 @@ for await (const event of await client.events()) {
 
 ## Documentation
 
-- [Concepts, API selection, and v2->v3 migration notes](docs/context.md)
+- [Concepts, API selection, v5 client input notes, and migration notes](docs/context.md)
 - [Runnable shared-route example](examples/basic-usage.ts)
 - [Runnable typed error response example](examples/error-responses.ts)
 - [Runnable NDJSON response-stream example](examples/ndjson-stream.ts)

@@ -213,6 +213,10 @@ requests with an `Origin` header.
 
 `createClient({ baseURL, routes })` creates a client tree that mirrors
 `routes`, with action functions such as `client.profiles.get(args)`.
+Generated action functions accept a flattened first argument containing path,
+query, and JSON body fields. Per-request `RequestInit` options, including
+headers and abort signals, are passed as the optional second argument.
+
 Generated action functions include:
 
 - raw `Response` results for actions without a response schema
@@ -261,15 +265,21 @@ string-coercion step.
 
 ### Call client actions
 
-Use generated client action functions for application calls:
+Use generated client action functions for application calls. The first argument
+is a flat object containing all path, query, and JSON body fields. The optional
+second argument is for per-request `RequestInit` options such as headers or an
+abort signal.
 
 ```ts
-await client.profiles.get({ path: { id: '42' } })
-await client.profiles.update({
-  path: { id: '42' },
-  body: { name: 'Ada' },
-})
+await client.profiles.get({ id: '42', includePosts: true })
+await client.profiles.update(
+  { id: '42', name: 'Ada' },
+  { headers: { 'x-request-id': 'docs' } }
+)
 ```
+
+Avoid duplicate field names across an action's path, query, and body schemas;
+the client input is flat, so duplicate keys cannot represent separate values.
 
 ### Handle declared error responses
 
@@ -308,9 +318,7 @@ const client = createClient({
   routes,
 })
 
-const [error, user, status] = await client.getUser({
-  path: { id: 'missing' },
-})
+const [error, user, status] = await client.getUser({ id: 'missing' })
 
 if (status === 404) {
   console.log(error.message)
@@ -384,10 +392,28 @@ export const organizations = http.resource('orgs/:orgId', {
   }),
 })
 
-await client.organizations.members.get({
-  path: { orgId: 'acme', memberId: '42' },
-})
+await client.organizations.members.get({ orgId: 'acme', memberId: '42' })
 ```
+
+### Send raw request bodies
+
+Use `http.rawBody()` for mutation actions whose client should pass a `BodyInit`
+through to `fetch` without JSON encoding or Zod body parsing:
+
+```ts
+export const uploadAvatar = http.post('profiles/:id/avatar', {
+  body: http.rawBody(),
+  headers: z.object({ 'content-type': z.string() }),
+})
+
+await client.uploadAvatar(
+  { id: '42' },
+  { body: file, headers: { 'content-type': file.type } }
+)
+```
+
+Path fields still live in the flat first argument. The raw body itself is passed
+as `body` in the second argument because it is a `RequestInit` value.
 
 ### Return custom responses
 
@@ -434,7 +460,8 @@ export const profiles = http.resource('profiles/:id', {
 export const routes = { profiles }
 ```
 
-Handler maps and client calls mirror the new action names:
+Handler maps mirror the action names, while v5 client calls use flat input
+objects:
 
 ```ts
 createRouter().use(routes, {
@@ -448,11 +475,8 @@ createRouter().use(routes, {
   },
 })
 
-await client.profiles.get({ path: { id: '42' } })
-await client.profiles.update({
-  path: { id: '42' },
-  body: { name: 'Ada' },
-})
+await client.profiles.get({ id: '42' })
+await client.profiles.update({ id: '42', name: 'Ada' })
 ```
 
 ## Patterns to prefer
@@ -480,8 +504,8 @@ await client.profiles.update({
 - `$type<T>()`, `$error<T>()`, and `ndjson.$type<T>()` are compile-time-only type
   contracts. Rouzer does not re-validate handler return values at the server
   boundary.
-- NDJSON support is for response streams; request bodies still use the existing
-  JSON body schema path.
+- NDJSON support is for response streams; request bodies use JSON body schemas
+  unless an action declares `body: http.rawBody()`.
 - Declared `$error<T>()` responses are JSON responses. Use a custom `Response`
   for non-JSON error payloads.
 - Routes that use a response plugin fail fast if the matching client or router
@@ -489,10 +513,10 @@ await client.profiles.update({
 - Pathname route patterns expect an absolute client `baseURL`.
 - Resource and action keys are API names only; paths come from the pattern
   strings passed to `http.resource(...)` and action helpers.
-- Extra `RequestInit` fields in route args, such as `signal` or `credentials`,
-  are forwarded by `createClient`; `method` and `body` are reserved for Rouzer's
-  action metadata and validated call arguments. Use route args or client defaults
-  for request headers.
+- Path, query, and JSON body fields are flattened into the first client action
+  argument. Per-request `RequestInit` fields, such as `signal`, `credentials`,
+  and `headers`, belong in the second argument. `method` is reserved by Rouzer;
+  `body` is only accepted in the second argument for `http.rawBody()` actions.
 - The HTTP action API has no `ALL` fallback route. Declare explicit actions for
   supported methods.
 - Rouzer does not automatically set `Access-Control-Allow-Credentials`; set it in
