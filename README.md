@@ -181,6 +181,28 @@ await client.upload(file, { headers: { 'content-type': file.type } })
 Server handlers for raw-body routes read from `ctx.request` directly with Fetch
 APIs such as `arrayBuffer()`, `blob()`, `formData()`, or `text()`.
 
+### Client lifecycle hooks
+
+Pass `clientHook` to observe generated client action calls without wrapping the
+client tree:
+
+```ts
+const client = createClient({
+  baseURL: 'https://example.com/api/',
+  routes,
+  clientHook(event) {
+    if (event.type === 'request.success') {
+      console.log(event.routeName, event.durationMs)
+    }
+  },
+})
+```
+
+Rouzer emits `request.start` before client-side validation, then
+`request.success` when the action resolves or `request.error` when it rejects.
+Terminal events include the parsed response or thrown error plus `durationMs`.
+Hook errors are swallowed.
+
 ### NDJSON response streams
 
 Use `response: ndjson.$type<T>()` for endpoints that stream

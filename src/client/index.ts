@@ -28,6 +28,44 @@ import type { RawBodySchema } from '../types/schema.js'
 import type { InferRouteResponse } from '../types/response.js'
 import type { RouteSchema } from '../types/schema.js'
 
+/** Lifecycle event emitted by generated client action functions. */
+export type RouzerClientHookEvent =
+  | {
+      type: 'request.start'
+      opId: string
+      routeName: string
+      method: string
+      pathPattern: string
+      payload: unknown
+    }
+  | {
+      type: 'request.success'
+      opId: string
+      routeName: string
+      method: string
+      pathPattern: string
+      payload: unknown
+      response: unknown
+      status?: number
+      durationMs: number
+    }
+  | {
+      type: 'request.error'
+      opId: string
+      routeName: string
+      method: string
+      pathPattern: string
+      payload: unknown
+      error: unknown
+      status?: number
+      durationMs: number
+    }
+
+/** Best-effort observer for generated client action lifecycles. */
+export type RouzerClientHook = (event: RouzerClientHookEvent) => void
+
+let nextClientOpId = 0
+
 /** Client type inferred from an HTTP route tree passed to `createClient`. */
 export type RouzerClient<
   TRoutes extends HttpRouteTree = Record<string, never>,
@@ -79,6 +117,12 @@ export function createClient<
   onJsonError?: (response: Response) => Promisable<unknown>
   /** Custom `fetch` implementation to use for requests. */
   fetch?: typeof globalThis.fetch
+  /**
+   * Best-effort lifecycle observer for generated client action calls.
+   *
+   * @remarks Hook errors are swallowed and never change request behavior.
+   */
+  clientHook?: RouzerClientHook
 }) {
   const baseURL = config.baseURL.replace(/\/?$/, '/')
   const defaultHeaders = config.headers && shake(config.headers)
@@ -90,13 +134,10 @@ export function createClient<
 
   validateClientResponsePlugins(config.routes, responsePlugins)
 
-  async function plainRequest<T extends ClientRequest>({
-    path: pathPattern,
-    method,
-    input = {},
-    options: { body: rawBody, headers, ...init } = {},
-    schema,
-  }: T) {
+  async function plainRequest<T extends ClientRequest>(props: T) {
+    const { path: pathPattern, method, input = {}, schema } = props
+    const { body: rawBody, ...options } = props.options ?? {}
+    let { headers, ...init } = options
     const path = schema.path
       ? schema.path.parse(pickObjectSchemaFields(schema.path, input))
       : input
@@ -135,7 +176,7 @@ export function createClient<
       headers = schema.headers.parse(headers)
     }
 
-    return fetch(url, {
+    const response = (await fetch(url, {
       ...init,
       method,
       body: isRawBodySchema(schema.body)
@@ -144,13 +185,16 @@ export function createClient<
           ? JSON.stringify(body)
           : undefined,
       headers: (headers ?? defaultHeaders) as HeadersInit,
-    }) as Promise<Response & { json(): Promise<T['$result']> }>
+    })) as Response & { json(): Promise<T['$result']> }
+    props.status = response.status
+    return response
   }
 
   async function parsedRequest<T extends ClientRequest>(
     props: T
   ): Promise<T['$result']> {
     const response = await plainRequest(props)
+    props.status = response.status
     const responseSchema = props.schema.response
 
     // Handle status-keyed response maps
@@ -222,8 +266,10 @@ export function createClient<
     ...(connectTree(
       config.routes,
       '',
+      '',
       plainRequest,
-      parsedRequest
+      parsedRequest,
+      config.clientHook
     ) as ClientTree<TRoutes>),
     clientConfig: config,
   }
@@ -233,9 +279,12 @@ export function createClient<
 type ClientRequest<TResult = any> = {
   schema: RouteSchema
   path: RoutePattern
+  routeName: string
   method: string
   input?: unknown
+  payload: unknown
   options?: RouteOptions & { body?: BodyInit | null }
+  status?: number
   $result: TResult
 }
 
@@ -295,8 +344,10 @@ export type RouteFunction<T extends RouteSchema, P extends string> = T extends {
 function connectTree(
   tree: HttpRouteTree,
   prefix: string,
+  namePrefix: string,
   plainRequest: (props: ClientRequest) => Promise<Response>,
-  parsedRequest: (props: ClientRequest) => Promise<any>
+  parsedRequest: (props: ClientRequest) => Promise<any>,
+  clientHook?: RouzerClientHook
 ): any {
   return Object.fromEntries(
     Object.entries(tree).map(([key, node]) => {
@@ -306,8 +357,10 @@ function connectTree(
           connectTree(
             node.children,
             joinPaths(prefix, node.path.source),
+            joinNames(namePrefix, key),
             plainRequest,
-            parsedRequest
+            parsedRequest,
+            clientHook
           ),
         ]
       }
@@ -315,25 +368,103 @@ function connectTree(
         joinPaths(prefix, node.path?.source ?? '')
       )
       const fetch = node.schema.response ? parsedRequest : plainRequest
+      const routeName = joinNames(namePrefix, key)
       return [
         key,
         (input?: unknown, options?: RouteOptions) => {
+          const payload = input
           if (isRawBodySchema(node.schema.body) && !hasRouteInput(node, path)) {
             options = { ...options, body: input as BodyInit | null }
             input = undefined
           }
-          return fetch({
-            schema: node.schema,
-            path,
-            method: node.method,
-            input,
-            options,
-            $result: undefined!,
-          })
+          return runClientRequest(
+            {
+              schema: node.schema,
+              path,
+              routeName,
+              method: node.method,
+              input,
+              payload,
+              options,
+              $result: undefined!,
+            },
+            fetch,
+            clientHook
+          )
         },
       ]
     })
   )
+}
+
+async function runClientRequest(
+  request: ClientRequest,
+  fetch: (props: ClientRequest) => Promise<any>,
+  clientHook?: RouzerClientHook
+): Promise<any> {
+  if (!clientHook) {
+    return fetch(request)
+  }
+
+  const opId = createClientOpId()
+  const startTime = Date.now()
+  const baseEvent = {
+    opId,
+    routeName: request.routeName,
+    method: request.method,
+    pathPattern: request.path.source,
+    payload: request.payload,
+  }
+
+  emitClientHook(clientHook, {
+    type: 'request.start',
+    ...baseEvent,
+  })
+
+  try {
+    const response = await fetch(request)
+    emitClientHook(clientHook, {
+      type: 'request.success',
+      ...baseEvent,
+      response,
+      ...clientRequestStatus(request),
+      durationMs: Date.now() - startTime,
+    })
+    return response
+  } catch (error) {
+    emitClientHook(clientHook, {
+      type: 'request.error',
+      ...baseEvent,
+      error,
+      ...clientRequestStatus(request),
+      durationMs: Date.now() - startTime,
+    })
+    throw error
+  }
+}
+
+function emitClientHook(
+  clientHook: RouzerClientHook,
+  event: RouzerClientHookEvent
+) {
+  try {
+    clientHook(event)
+  } catch {
+    // Lifecycle hooks are observability-only and must not affect requests.
+  }
+}
+
+function createClientOpId() {
+  nextClientOpId += 1
+  return `rouzer:${Date.now().toString(36)}:${nextClientOpId.toString(36)}`
+}
+
+function clientRequestStatus(request: ClientRequest) {
+  return request.status === undefined ? {} : { status: request.status }
+}
+
+function joinNames(left: string, right: string) {
+  return [left, right].filter(Boolean).join('.')
 }
 
 function validateClientResponsePlugins(

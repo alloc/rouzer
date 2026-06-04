@@ -242,6 +242,54 @@ top, and a custom `fetch` implementation can be supplied for tests or non-browse
 runtimes. The returned client exposes the original options as `clientConfig`, so
 route actions named `config` remain available as `client.config(...)`.
 
+### Client lifecycle hooks
+
+`createClient({ clientHook })` observes generated client action calls without
+wrapping the returned client tree:
+
+```ts
+const client = createClient({
+  baseURL: 'https://example.com/api/',
+  routes,
+  clientHook(event) {
+    if (event.type === 'request.success') {
+      console.log({
+        opId: event.opId,
+        routeName: event.routeName,
+        durationMs: event.durationMs,
+      })
+    }
+  },
+})
+```
+
+Rouzer emits:
+
+- `request.start` before client-side validation
+- `request.success` when the generated action resolves
+- `request.error` when the generated action rejects
+
+Each event includes an opaque per-call `opId`, the generated client route name
+such as `session.create`, the HTTP method, the joined route path pattern, and
+the generated action's first argument as `payload`. Terminal events include
+`durationMs`, either the resolved `response` or thrown `error`, and `status` when
+an HTTP response was received.
+
+`request.error` covers client validation failures, transport failures,
+undeclared HTTP errors, JSON parsing failures, response plugin decode failures,
+and rejected `onJsonError` handlers. A declared error response returned as data
+from a response map is a successful generated action and emits
+`request.success`.
+
+Lifecycle hooks are best-effort observability only. If `clientHook` throws,
+Rouzer swallows that hook error and preserves the generated action's original
+behavior.
+
+For response plugins that return streams, such as NDJSON, `request.success` is
+emitted when the generated action resolves to the stream object. Errors that
+happen later while the caller consumes the stream are outside the first lifecycle
+hook surface.
+
 ## Lifecycle
 
 1. Define shared HTTP actions/resources with `rouzer/http` and Zod schemas.
