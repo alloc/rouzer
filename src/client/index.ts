@@ -176,7 +176,7 @@ export function createClient<
       headers = schema.headers.parse(headers)
     }
 
-    const response = (await fetch(url, {
+    return (await fetch(url, {
       ...init,
       method,
       body: isRawBodySchema(schema.body)
@@ -186,15 +186,12 @@ export function createClient<
           : undefined,
       headers: (headers ?? defaultHeaders) as HeadersInit,
     })) as Response & { json(): Promise<T['$result']> }
-    props.status = response.status
-    return response
   }
 
-  async function parsedRequest<T extends ClientRequest>(
+  async function parseResponse<T extends ClientRequest>(
+    response: Response & { json(): Promise<T['$result']> },
     props: T
   ): Promise<T['$result']> {
-    const response = await plainRequest(props)
-    props.status = response.status
     const responseSchema = props.schema.response
 
     // Handle status-keyed response maps
@@ -245,6 +242,30 @@ export function createClient<
     return response.json()
   }
 
+  async function plainClientRequest<T extends ClientRequest>(
+    props: T
+  ): Promise<ClientRequestResult<T['$result']>> {
+    const response = await plainRequest(props)
+    return {
+      value: response as T['$result'],
+      status: response.status,
+    }
+  }
+
+  async function parsedClientRequest<T extends ClientRequest>(
+    props: T
+  ): Promise<ClientRequestResult<T['$result']>> {
+    const response = await plainRequest(props)
+    try {
+      return {
+        value: await parseResponse(response, props),
+        status: response.status,
+      }
+    } catch (error) {
+      throw new ClientRequestFailure(error, response.status)
+    }
+  }
+
   async function handleResponseError<T extends ClientRequest>(
     response: Response,
     props: T
@@ -267,8 +288,8 @@ export function createClient<
       config.routes,
       '',
       '',
-      plainRequest,
-      parsedRequest,
+      plainClientRequest,
+      parsedClientRequest,
       config.clientHook
     ) as ClientTree<TRoutes>),
     clientConfig: config,
@@ -284,8 +305,19 @@ type ClientRequest<TResult = any> = {
   input?: unknown
   payload: unknown
   options?: RouteOptions & { body?: BodyInit | null }
-  status?: number
   $result: TResult
+}
+
+type ClientRequestResult<TResult = any> = {
+  value: TResult
+  status?: number
+}
+
+class ClientRequestFailure {
+  constructor(
+    readonly error: unknown,
+    readonly status?: number
+  ) {}
 }
 
 type Join<A extends string, B extends string> = A extends ''
@@ -345,8 +377,8 @@ function connectTree(
   tree: HttpRouteTree,
   prefix: string,
   namePrefix: string,
-  plainRequest: (props: ClientRequest) => Promise<Response>,
-  parsedRequest: (props: ClientRequest) => Promise<any>,
+  plainRequest: (props: ClientRequest) => Promise<ClientRequestResult>,
+  parsedRequest: (props: ClientRequest) => Promise<ClientRequestResult>,
   clientHook?: RouzerClientHook
 ): any {
   return Object.fromEntries(
@@ -399,11 +431,15 @@ function connectTree(
 
 async function runClientRequest(
   request: ClientRequest,
-  fetch: (props: ClientRequest) => Promise<any>,
+  fetch: (props: ClientRequest) => Promise<ClientRequestResult>,
   clientHook?: RouzerClientHook
 ): Promise<any> {
   if (!clientHook) {
-    return fetch(request)
+    try {
+      return (await fetch(request)).value
+    } catch (error) {
+      throw getClientRequestFailure(error)?.error ?? error
+    }
   }
 
   const opId = createClientOpId()
@@ -422,24 +458,26 @@ async function runClientRequest(
   })
 
   try {
-    const response = await fetch(request)
+    const result = await fetch(request)
     emitClientHook(clientHook, {
       type: 'request.success',
       ...baseEvent,
-      response,
-      ...clientRequestStatus(request),
+      response: result.value,
+      ...clientRequestStatus(result.status),
       durationMs: Date.now() - startTime,
     })
-    return response
+    return result.value
   } catch (error) {
+    const failure = getClientRequestFailure(error)
+    const eventError = failure ? failure.error : error
     emitClientHook(clientHook, {
       type: 'request.error',
       ...baseEvent,
-      error,
-      ...clientRequestStatus(request),
+      error: eventError,
+      ...clientRequestStatus(failure?.status),
       durationMs: Date.now() - startTime,
     })
-    throw error
+    throw eventError
   }
 }
 
@@ -459,8 +497,12 @@ function createClientOpId() {
   return `rouzer:${Date.now().toString(36)}:${nextClientOpId.toString(36)}`
 }
 
-function clientRequestStatus(request: ClientRequest) {
-  return request.status === undefined ? {} : { status: request.status }
+function getClientRequestFailure(error: unknown) {
+  return error instanceof ClientRequestFailure ? error : undefined
+}
+
+function clientRequestStatus(status: number | undefined) {
+  return status === undefined ? {} : { status }
 }
 
 function joinNames(left: string, right: string) {
