@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify
+        run: |
+          set -euo pipefail
+          node - <<'NODE' > /tmp/ci-scripts.txt
+          const scripts = require('./package.json').scripts || {};
+          for (const name of ['lint', 'typecheck', 'test', 'build']) {
+            if (scripts[name]) console.log(name);
+          }
+          NODE
+          while read -r script; do
+            [ -n "$script" ] || continue
+            pnpm run "$script"
+          done < /tmp/ci-scripts.txt
