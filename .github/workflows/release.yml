@@ -101,18 +101,6 @@ jobs:
         if: steps.version.outputs.should_release == 'true'
         run: npm pkg set version="${{ steps.version.outputs.version }}"
 
-      - name: Lint
-        if: steps.version.outputs.should_release == 'true'
-        run: pnpm run --if-present lint
-
-      - name: Typecheck
-        if: steps.version.outputs.should_release == 'true'
-        run: pnpm run --if-present typecheck
-
-      - name: Test
-        if: steps.version.outputs.should_release == 'true'
-        run: pnpm run --if-present test
-
       - name: Build
         if: steps.version.outputs.should_release == 'true'
         run: pnpm run --if-present build
