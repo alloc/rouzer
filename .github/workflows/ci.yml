@@ -28,16 +28,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify
-        run: |
-          set -euo pipefail
-          node - <<'NODE' > /tmp/ci-scripts.txt
-          const scripts = require('./package.json').scripts || {};
-          for (const name of ['lint', 'typecheck', 'test', 'build']) {
-            if (scripts[name]) console.log(name);
-          }
-          NODE
-          while read -r script; do
-            [ -n "$script" ] || continue
-            pnpm run "$script"
-          done < /tmp/ci-scripts.txt
+      - name: Lint
+        run: pnpm run --if-present lint
+
+      - name: Typecheck
+        run: pnpm run --if-present typecheck
+
+      - name: Test
+        run: pnpm run --if-present test
+
+      - name: Build
+        run: pnpm run --if-present build

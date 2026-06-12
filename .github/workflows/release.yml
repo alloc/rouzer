@@ -101,20 +101,21 @@ jobs:
         if: steps.version.outputs.should_release == 'true'
         run: npm pkg set version="${{ steps.version.outputs.version }}"
 
-      - name: Verify release candidate
+      - name: Lint
         if: steps.version.outputs.should_release == 'true'
-        run: |
-          set -euo pipefail
-          node - <<'NODE' > /tmp/release-scripts.txt
-          const scripts = require('./package.json').scripts || {};
-          for (const name of ['lint', 'typecheck', 'test', 'build']) {
-            if (scripts[name]) console.log(name);
-          }
-          NODE
-          while read -r script; do
-            [ -n "$script" ] || continue
-            pnpm run "$script"
-          done < /tmp/release-scripts.txt
+        run: pnpm run --if-present lint
+
+      - name: Typecheck
+        if: steps.version.outputs.should_release == 'true'
+        run: pnpm run --if-present typecheck
+
+      - name: Test
+        if: steps.version.outputs.should_release == 'true'
+        run: pnpm run --if-present test
+
+      - name: Build
+        if: steps.version.outputs.should_release == 'true'
+        run: pnpm run --if-present build
 
       - name: Commit release updates
         if: steps.version.outputs.should_release == 'true'
