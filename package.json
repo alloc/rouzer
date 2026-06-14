@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@hattip/core": "^0.0.49",
-    "@remix-run/route-pattern": "^0.21.1",
+    "@remix-run/route-pattern": "^0.22.1",
     "alien-middleware": "^0.11.6"
   },
   "prettier": "@alloc/prettier-config",

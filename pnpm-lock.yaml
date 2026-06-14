@@ -12,8 +12,8 @@ importers:
         specifier: ^0.0.49
         version: 0.0.49
       '@remix-run/route-pattern':
-        specifier: ^0.21.1
-        version: 0.21.1
+        specifier: ^0.22.1
+        version: 0.22.1
       alien-middleware:
         specifier: ^0.11.6
         version: 0.11.6(@hattip/core@0.0.49)
@@ -246,8 +246,8 @@ packages:
   '@oxc-project/types@0.130.0':
     resolution: {integrity: sha512-ibD2usx9JRu7f5pu2tMKMI4cpA4NgXJQoYRP4pQ7Pxmn1l6k/53qWtQWZayhYy3X4QZkt90Ot+mJEaeXouio6Q==}
 
-  '@remix-run/route-pattern@0.21.1':
-    resolution: {integrity: sha512-vXTyJPwicRY2PyNoT3l6Ql4EM4eenPyDOAQGxH4p/+jIDuX3312xxQe3BQ+fhdspobJtnKaEgTWVKBZb+9ArWQ==}
+  '@remix-run/route-pattern@0.22.1':
+    resolution: {integrity: sha512-czdGJWh09Lapvcqt7Vb09KlrU2PhRJ8xQaI+AItTuD9aDJ5MAgxnS38lnys6Ll+6RJEqPiaUqTwIQhVLwFvv+w==}
 
   '@rolldown/binding-android-arm64@1.0.1':
     resolution: {integrity: sha512-fJI3I0r3C3Oj/zdBCpaCmBRZYf07xpaq4yCfDDoSFm+beWNzbIl26puW8RraUdugoJw/95zerNOn6jasAhzSmg==}
@@ -918,7 +918,7 @@ snapshots:
 
   '@oxc-project/types@0.130.0': {}
 
-  '@remix-run/route-pattern@0.21.1': {}
+  '@remix-run/route-pattern@0.22.1': {}
 
   '@rolldown/binding-android-arm64@1.0.1':
     optional: true
