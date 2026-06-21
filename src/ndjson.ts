@@ -78,74 +78,7 @@ export function encodeNdjson(
   source: NdjsonSource,
   options: NdjsonEncodeOptions = {}
 ): ReadableStream<Uint8Array> {
-  const iterator = getAsyncIterator(source)
-  const encoder = new TextEncoder()
-  const { signal } = options
-  let cancelled = false
-  let cleanup: Promise<void> | undefined
-  let abortHandler: (() => void) | undefined
-
-  function removeAbortHandler() {
-    if (signal && abortHandler) {
-      signal.removeEventListener('abort', abortHandler)
-      abortHandler = undefined
-    }
-  }
-
-  function cancelIterator(reason?: unknown) {
-    cancelled = true
-    removeAbortHandler()
-    cleanup ??= Promise.resolve(iterator.return?.(reason)).then(() => {})
-    return cleanup
-  }
-
-  return new ReadableStream({
-    start(controller) {
-      if (!signal) {
-        return
-      }
-
-      abortHandler = () => {
-        void cancelIterator(signal.reason).catch(() => {})
-        try {
-          controller.close()
-        } catch {}
-      }
-
-      if (signal.aborted) {
-        abortHandler()
-        return
-      }
-      signal.addEventListener('abort', abortHandler, { once: true })
-    },
-    async pull(controller) {
-      if (cancelled) {
-        controller.close()
-        return
-      }
-
-      const { done, value } = await iterator.next()
-      if (cancelled) {
-        return
-      }
-      if (done) {
-        removeAbortHandler()
-        controller.close()
-        return
-      }
-
-      const line = JSON.stringify(value)
-      if (line === undefined) {
-        throw new TypeError(
-          'NDJSON items must serialize to a JSON text; received undefined'
-        )
-      }
-      controller.enqueue(encoder.encode(`${line}\n`))
-    },
-    async cancel(reason) {
-      await cancelIterator(reason)
-    },
-  })
+  return new ReadableStream(new NdjsonEncoder(source, options))
 }
 
 /**
@@ -158,97 +91,194 @@ export function encodeNdjson(
 export function decodeNdjson<T = unknown>(
   stream: ReadableStream<Uint8Array>
 ): AsyncIterable<T> {
-  const reader = stream.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-  let lineNumber = 0
-  let closed = false
-  let doneReading = false
-  let readerReleased = false
+  return new NdjsonDecoder(stream)
+}
 
-  function releaseReader() {
-    if (!readerReleased) {
-      readerReleased = true
-      reader.releaseLock()
+class NdjsonEncoder implements UnderlyingDefaultSource<Uint8Array> {
+  private readonly iterator: AsyncIterator<unknown>
+  private readonly encoder = new TextEncoder()
+  private cancelled = false
+  private cleanup: Promise<void> | undefined
+  private abortHandler: (() => void) | undefined
+
+  constructor(
+    source: NdjsonSource,
+    private readonly options: NdjsonEncodeOptions
+  ) {
+    this.iterator = getAsyncIterator(source)
+  }
+
+  start(controller: ReadableStreamDefaultController<Uint8Array>) {
+    const { signal } = this.options
+    if (signal) {
+      this.abortHandler = () => {
+        void this.cancel(signal.reason).catch(() => {})
+        try {
+          controller.close()
+        } catch {}
+      }
+
+      if (signal.aborted) {
+        this.abortHandler()
+      } else {
+        signal.addEventListener('abort', this.abortHandler, { once: true })
+      }
     }
   }
 
-  async function cancelReader(reason?: unknown) {
-    if (!doneReading) {
-      await reader.cancel(reason).catch(() => {})
+  async pull(controller: ReadableStreamDefaultController<Uint8Array>) {
+    if (this.cancelled) {
+      controller.close()
+      return
     }
-    releaseReader()
+
+    const { done, value } = await this.iterator.next()
+    if (this.cancelled) {
+      return
+    }
+    if (done) {
+      this.removeAbortHandler()
+      controller.close()
+      return
+    }
+
+    const line = JSON.stringify(value)
+    if (line === undefined) {
+      throw new TypeError(
+        'NDJSON items must serialize to a JSON text; received undefined'
+      )
+    }
+    controller.enqueue(this.encoder.encode(`${line}\n`))
   }
 
-  async function parseNextLine(line: string): Promise<IteratorResult<T>> {
+  async cancel(reason?: unknown) {
+    if (!this.cancelled) {
+      this.cancelled = true
+      this.removeAbortHandler()
+      this.cleanup ??= Promise.resolve(this.iterator.return?.(reason)).then(
+        () => {}
+      )
+    }
+    await this.cleanup
+  }
+
+  private removeAbortHandler() {
+    const { signal } = this.options
+    if (signal && this.abortHandler) {
+      signal.removeEventListener('abort', this.abortHandler)
+      this.abortHandler = undefined
+    }
+  }
+}
+
+class NdjsonDecoder<T> implements AsyncIterable<T> {
+  readonly reader: ReadableStreamDefaultReader<Uint8Array>
+  readonly decoder = new TextDecoder()
+  buffer = ''
+  lineNumber = 0
+  closed = false
+  doneReading = false
+  readerReleased = false
+
+  constructor(stream: ReadableStream<Uint8Array>) {
+    this.reader = stream.getReader()
+  }
+
+  [Symbol.asyncIterator]() {
+    return new NdjsonAsyncIterator(this)
+  }
+
+  releaseReader() {
+    if (!this.readerReleased) {
+      this.readerReleased = true
+      this.reader.releaseLock()
+    }
+  }
+
+  async cancelReader(reason?: unknown) {
+    if (!this.doneReading) {
+      await this.reader.cancel(reason).catch(() => {})
+    }
+    this.releaseReader()
+  }
+
+  async parseNextLine(line: string): Promise<IteratorResult<T>> {
     try {
-      lineNumber += 1
+      this.lineNumber += 1
       return {
         done: false,
-        value: parseNdjsonLine<T>(stripCarriageReturn(line), lineNumber),
+        value: parseNdjsonLine<T>(stripCarriageReturn(line), this.lineNumber),
       }
     } catch (error) {
-      closed = true
-      await cancelReader(error)
+      this.closed = true
+      await this.cancelReader(error)
       throw error
     }
   }
+}
 
-  return {
-    [Symbol.asyncIterator]() {
-      return {
-        async next(): Promise<IteratorResult<T>> {
-          if (closed) {
-            return { done: true, value: undefined as T }
-          }
+class NdjsonAsyncIterator<T> implements AsyncIterator<T> {
+  private closed = false
 
-          while (true) {
-            const newlineIndex = buffer.indexOf('\n')
-            if (newlineIndex !== -1) {
-              const line = buffer.slice(0, newlineIndex)
-              buffer = buffer.slice(newlineIndex + 1)
-              return parseNextLine(line)
-            }
+  constructor(private readonly decoder: NdjsonDecoder<T>) {}
 
-            if (doneReading) {
-              closed = true
-              releaseReader()
-              if (buffer.length > 0) {
-                const line = buffer
-                buffer = ''
-                return parseNextLine(line)
-              }
-              return { done: true, value: undefined as T }
-            }
+  async next(): Promise<IteratorResult<T>> {
+    if (this.closed || this.decoder.closed) {
+      return { done: true, value: undefined as T }
+    }
 
-            let chunk: ReadableStreamReadResult<Uint8Array>
-            try {
-              chunk = await reader.read()
-            } catch (error) {
-              closed = true
-              releaseReader()
-              throw error
-            }
-            if (closed) {
-              return { done: true, value: undefined as T }
-            }
-            if (chunk.done) {
-              buffer += decoder.decode()
-              doneReading = true
-            } else {
-              buffer += decoder.decode(chunk.value, { stream: true })
-            }
-          }
-        },
-        async return(reason?: unknown): Promise<IteratorResult<T>> {
-          if (!closed) {
-            closed = true
-            await cancelReader(reason)
-          }
-          return { done: true, value: undefined as T }
-        },
+    while (true) {
+      const newlineIndex = this.decoder.buffer.indexOf('\n')
+      if (newlineIndex !== -1) {
+        const line = this.decoder.buffer.slice(0, newlineIndex)
+        this.decoder.buffer = this.decoder.buffer.slice(newlineIndex + 1)
+        return this.decoder.parseNextLine(line)
       }
-    },
+
+      if (this.decoder.doneReading) {
+        this.close()
+        this.decoder.releaseReader()
+        if (this.decoder.buffer.length > 0) {
+          const line = this.decoder.buffer
+          this.decoder.buffer = ''
+          return this.decoder.parseNextLine(line)
+        }
+        return { done: true, value: undefined as T }
+      }
+
+      let chunk: ReadableStreamReadResult<Uint8Array>
+      try {
+        chunk = await this.decoder.reader.read()
+      } catch (error) {
+        this.close()
+        this.decoder.releaseReader()
+        throw error
+      }
+      if (this.closed || this.decoder.closed) {
+        return { done: true, value: undefined as T }
+      }
+      if (chunk.done) {
+        this.decoder.buffer += this.decoder.decoder.decode()
+        this.decoder.doneReading = true
+      } else {
+        this.decoder.buffer += this.decoder.decoder.decode(chunk.value, {
+          stream: true,
+        })
+      }
+    }
+  }
+
+  async return(reason?: unknown): Promise<IteratorResult<T>> {
+    if (!this.closed) {
+      this.close()
+      await this.decoder.cancelReader(reason)
+    }
+    return { done: true, value: undefined as T }
+  }
+
+  private close() {
+    this.closed = true
+    this.decoder.closed = true
   }
 }
 
@@ -261,36 +291,32 @@ export function decodeNdjson<T = unknown>(
  */
 export function ndjsonResponse<T>(
   source: NdjsonSource<T>,
-  init: ResponseInit & NdjsonEncodeOptions = {}
+  { signal, ...init }: ResponseInit & NdjsonEncodeOptions = {}
 ): Response {
-  const { signal, ...responseInit } = init
   const headers = new Headers(init.headers)
   if (!headers.has('content-type')) {
     headers.set('content-type', 'application/x-ndjson; charset=utf-8')
   }
 
   return new Response(encodeNdjson(source, { signal }), {
-    ...responseInit,
+    ...init,
     headers,
   })
 }
 
 function getAsyncIterator<T>(source: NdjsonSource<T>): AsyncIterator<T> {
-  const asyncIterator = (source as AsyncIterable<T>)[Symbol.asyncIterator]?.()
-  if (asyncIterator) {
-    return asyncIterator
+  if (Symbol.asyncIterator in source) {
+    return source[Symbol.asyncIterator]()
   }
 
-  const iterator = (source as Iterable<T>)[Symbol.iterator]?.()
-  if (iterator) {
+  if (Symbol.iterator in source) {
+    const iterator = source[Symbol.iterator]()
     return {
-      next() {
-        return Promise.resolve(iterator.next())
-      },
-      async return() {
-        iterator.return?.()
-        return { done: true, value: undefined as T }
-      },
+      next: async value => iterator.next(value),
+      return: iterator.return
+        ? async value => iterator.return!(value)
+        : undefined,
+      throw: iterator.throw ? async error => iterator.throw!(error) : undefined,
     }
   }
 
@@ -309,8 +335,8 @@ function parseNdjsonLine<T>(line: string, lineNumber: number): T {
       `Invalid NDJSON at line ${lineNumber}: ${
         cause instanceof Error ? cause.message : String(cause)
       }`
-    )
-    ;(error as Error & { cause?: unknown }).cause = cause
+    ) as SyntaxError & { cause?: unknown }
+    error.cause = cause
     throw error
   }
 }
