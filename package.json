@@ -1,6 +1,6 @@
 {
   "name": "rouzer",
-  "version": "5.2.1",
+  "version": "5.2.2",
   "packageManager": "pnpm@11.5.1",
   "type": "module",
   "exports": {
