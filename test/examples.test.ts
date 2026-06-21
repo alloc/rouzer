@@ -33,8 +33,14 @@ test('typed error response example stays runnable', async () => {
 })
 
 test('NDJSON stream example stays runnable', async () => {
-  await expect(runNdjsonStreamExample()).resolves.toEqual([
-    { id: 1, message: 'ready' },
-    { id: 2, message: 'done' },
-  ])
+  await expect(runNdjsonStreamExample()).resolves.toEqual({
+    allEvents: [
+      { id: 1, message: 'ready' },
+      { id: 2, message: 'done' },
+    ],
+    firstMatchingEvent: {
+      id: 1,
+      message: 'session.message for ses_123',
+    },
+  })
 })
