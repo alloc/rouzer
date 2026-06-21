@@ -237,6 +237,12 @@ for await (const event of await client.events()) {
 }
 ```
 
+If a client aborts the request signal or stops iteration early by breaking from
+`for await` or calling the iterator's `return()`, Rouzer cancels the response
+body and calls the server source iterator's `return()`. Sources that wait for
+future events should make those waits abort-aware when they need cleanup to run
+while an awaited operation is still pending.
+
 ## Documentation
 
 - [Concepts, API selection, v5 client input notes, and migration notes](docs/context.md)

@@ -424,6 +424,12 @@ Rouzer's decoder accepts `\n` and `\r\n`, handles UTF-8 chunk boundaries, and
 throws a `SyntaxError` with a line number for malformed JSON. If a consumer stops
 reading early, the response body is cancelled.
 
+If a client aborts the request signal or stops iteration early by breaking from
+`for await` or calling the iterator's `return()`, Rouzer cancels the response
+body and calls the server source iterator's `return()`. Sources that wait for
+future events should make those waits abort-aware when they need cleanup to run
+while an awaited operation is still pending.
+
 Rouzer does not convert handler or generator failures into extra NDJSON items. If
 an async generator throws after the response starts, the response stream errors
 and the client's `for await` loop throws. Model application-level stream errors

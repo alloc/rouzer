@@ -10,6 +10,12 @@ const codecId = 'rouzer/ndjson'
 /** Values accepted by Rouzer's NDJSON response encoder. */
 export type NdjsonSource<T = unknown> = Iterable<T> | AsyncIterable<T>
 
+/** Options for Rouzer's NDJSON response encoder. */
+export type NdjsonEncodeOptions = {
+  /** Signal whose abort cancels the source iterator and closes the stream. */
+  signal?: AbortSignal
+}
+
 /**
  * Create a compile-time marker for newline-delimited JSON response items.
  *
@@ -52,8 +58,10 @@ export const clientPlugin: ClientResponsePlugin = {
  */
 export const routerPlugin: RouterResponsePlugin = {
   id: codecId,
-  encode(value) {
-    return ndjsonResponse(value as NdjsonSource)
+  encode(value, { request }) {
+    return ndjsonResponse(value as NdjsonSource, {
+      signal: request.signal,
+    })
   },
 }
 
@@ -62,16 +70,66 @@ export const routerPlugin: RouterResponsePlugin = {
  *
  * @remarks Each yielded value is serialized with `JSON.stringify` and followed
  * by `\n`. Values that cannot be represented as a JSON text, such as
- * `undefined`, cause the stream to error when read.
+ * `undefined`, cause the stream to error when read. When `options.signal`
+ * aborts, the source iterator's `return()` method is called and the stream is
+ * closed.
  */
-export function encodeNdjson(source: NdjsonSource): ReadableStream<Uint8Array> {
+export function encodeNdjson(
+  source: NdjsonSource,
+  options: NdjsonEncodeOptions = {}
+): ReadableStream<Uint8Array> {
   const iterator = getAsyncIterator(source)
   const encoder = new TextEncoder()
+  const { signal } = options
+  let cancelled = false
+  let cleanup: Promise<void> | undefined
+  let abortHandler: (() => void) | undefined
+
+  function removeAbortHandler() {
+    if (signal && abortHandler) {
+      signal.removeEventListener('abort', abortHandler)
+      abortHandler = undefined
+    }
+  }
+
+  function cancelIterator(reason?: unknown) {
+    cancelled = true
+    removeAbortHandler()
+    cleanup ??= Promise.resolve(iterator.return?.(reason)).then(() => {})
+    return cleanup
+  }
 
   return new ReadableStream({
+    start(controller) {
+      if (!signal) {
+        return
+      }
+
+      abortHandler = () => {
+        void cancelIterator(signal.reason).catch(() => {})
+        try {
+          controller.close()
+        } catch {}
+      }
+
+      if (signal.aborted) {
+        abortHandler()
+        return
+      }
+      signal.addEventListener('abort', abortHandler, { once: true })
+    },
     async pull(controller) {
+      if (cancelled) {
+        controller.close()
+        return
+      }
+
       const { done, value } = await iterator.next()
+      if (cancelled) {
+        return
+      }
       if (done) {
+        removeAbortHandler()
         controller.close()
         return
       }
@@ -85,7 +143,7 @@ export function encodeNdjson(source: NdjsonSource): ReadableStream<Uint8Array> {
       controller.enqueue(encoder.encode(`${line}\n`))
     },
     async cancel(reason) {
-      await iterator.return?.(reason)
+      await cancelIterator(reason)
     },
   })
 }
@@ -146,15 +204,16 @@ export async function* decodeNdjson<T = unknown>(
  */
 export function ndjsonResponse<T>(
   source: NdjsonSource<T>,
-  init: ResponseInit = {}
+  init: ResponseInit & NdjsonEncodeOptions = {}
 ): Response {
+  const { signal, ...responseInit } = init
   const headers = new Headers(init.headers)
   if (!headers.has('content-type')) {
     headers.set('content-type', 'application/x-ndjson; charset=utf-8')
   }
 
-  return new Response(encodeNdjson(source), {
-    ...init,
+  return new Response(encodeNdjson(source, { signal }), {
+    ...responseInit,
     headers,
   })
 }
