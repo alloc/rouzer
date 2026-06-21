@@ -11,6 +11,13 @@ export default createRouter({ plugins: [ndjson.routerPlugin] }).use(routes, {
   events() {
     return streamEvents()
   },
+  stream({ body }) {
+    expect(body).toEqual({
+      names: ['session.message'],
+      where: [{ path: 'id', equals: 'ses_123' }],
+    })
+    return streamEvents()
+  },
   fails() {
     return Response.json({ code: 'nope' }, { status: 418 })
   },

@@ -38,6 +38,15 @@ export default createTest({
       { id: 2, message: 'done' },
     ])
 
+    const filter = {
+      names: ['session.message'],
+      where: [{ path: 'id', equals: 'ses_123' }],
+    }
+    await expect(collect(await client.stream(filter))).resolves.toEqual([
+      { id: 1, message: 'ready' },
+      { id: 2, message: 'done' },
+    ])
+
     await expect(client.fails()).rejects.toThrow(
       'Request to GET /fails failed with status 418'
     )
