@@ -69,6 +69,31 @@ function cancellableSource<T>(firstValue: T) {
   }
 }
 
+function blockedCancellableSource<T>() {
+  const cleanup = deferred()
+  let pendingNext: ((value: IteratorResult<T>) => void) | undefined
+
+  return {
+    cleanup: cleanup.promise,
+    source: {
+      [Symbol.asyncIterator]() {
+        return {
+          next() {
+            return new Promise<IteratorResult<T>>(resolve => {
+              pendingNext = resolve
+            })
+          },
+          async return() {
+            cleanup.resolve()
+            pendingNext?.({ done: true, value: undefined as T })
+            return { done: true, value: undefined as T }
+          },
+        }
+      },
+    } satisfies AsyncIterable<T>,
+  }
+}
+
 function timeout<T>(promise: Promise<T>) {
   return Promise.race([
     promise,
@@ -184,6 +209,26 @@ test('NDJSON client iterator return cancels a POST response body with a JSON bod
   await expect(timeout(bodyCancelled.promise)).resolves.toBeUndefined()
 })
 
+test('NDJSON client iterator return cancels a pending read before the first item', async () => {
+  const bodyCancelled = deferred()
+  const iterator = decodeNdjson<{ id: number }>(
+    new ReadableStream<Uint8Array>({
+      cancel() {
+        bodyCancelled.resolve()
+      },
+    })
+  )[Symbol.asyncIterator]()
+
+  const pendingRead = iterator.next()
+  await iterator.return?.()
+
+  await expect(timeout(bodyCancelled.promise)).resolves.toBeUndefined()
+  await expect(pendingRead).resolves.toEqual({
+    done: true,
+    value: undefined,
+  })
+})
+
 test('router NDJSON response cancels the source iterator when the request aborts', async () => {
   const controller = new AbortController()
   const request = new Request('http://test.local/stream', {
@@ -201,6 +246,28 @@ test('router NDJSON response cancels the source iterator when the request aborts
     value: new TextEncoder().encode('{"id":1}\n'),
   })
   const pendingRead = reader.read()
+  controller.abort()
+
+  await expect(timeout(cleanup)).resolves.toBeUndefined()
+  await expect(pendingRead).resolves.toEqual({
+    done: true,
+    value: undefined,
+  })
+})
+
+test('router NDJSON response cancels a blocked source iterator before the first item', async () => {
+  const controller = new AbortController()
+  const request = new Request('http://test.local/stream', {
+    signal: controller.signal,
+  })
+  const { cleanup, source } = blockedCancellableSource<{ id: number }>()
+  const response = await routerPlugin.encode(source, {
+    marker: $type<{ id: number }>(),
+    request,
+  })
+  const reader = response.body!.getReader()
+  const pendingRead = reader.read()
+
   controller.abort()
 
   await expect(timeout(cleanup)).resolves.toBeUndefined()

@@ -155,43 +155,100 @@ export function encodeNdjson(
  * are accepted, and a final line does not need a trailing newline. Malformed
  * lines throw a `SyntaxError` that includes the 1-based line number.
  */
-export async function* decodeNdjson<T = unknown>(
+export function decodeNdjson<T = unknown>(
   stream: ReadableStream<Uint8Array>
 ): AsyncIterable<T> {
   const reader = stream.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
   let lineNumber = 0
+  let closed = false
   let doneReading = false
+  let readerReleased = false
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) {
-        buffer += decoder.decode()
-        doneReading = true
-        break
-      }
-
-      buffer += decoder.decode(value, { stream: true })
-      let newlineIndex: number
-      while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
-        const line = stripCarriageReturn(buffer.slice(0, newlineIndex))
-        buffer = buffer.slice(newlineIndex + 1)
-        lineNumber += 1
-        yield parseNdjsonLine<T>(line, lineNumber)
-      }
+  function releaseReader() {
+    if (!readerReleased) {
+      readerReleased = true
+      reader.releaseLock()
     }
+  }
 
-    if (buffer.length > 0) {
-      lineNumber += 1
-      yield parseNdjsonLine<T>(stripCarriageReturn(buffer), lineNumber)
-    }
-  } finally {
+  async function cancelReader(reason?: unknown) {
     if (!doneReading) {
-      await reader.cancel().catch(() => {})
+      await reader.cancel(reason).catch(() => {})
     }
-    reader.releaseLock()
+    releaseReader()
+  }
+
+  async function parseNextLine(line: string): Promise<IteratorResult<T>> {
+    try {
+      lineNumber += 1
+      return {
+        done: false,
+        value: parseNdjsonLine<T>(stripCarriageReturn(line), lineNumber),
+      }
+    } catch (error) {
+      closed = true
+      await cancelReader(error)
+      throw error
+    }
+  }
+
+  return {
+    [Symbol.asyncIterator]() {
+      return {
+        async next(): Promise<IteratorResult<T>> {
+          if (closed) {
+            return { done: true, value: undefined as T }
+          }
+
+          while (true) {
+            const newlineIndex = buffer.indexOf('\n')
+            if (newlineIndex !== -1) {
+              const line = buffer.slice(0, newlineIndex)
+              buffer = buffer.slice(newlineIndex + 1)
+              return parseNextLine(line)
+            }
+
+            if (doneReading) {
+              closed = true
+              releaseReader()
+              if (buffer.length > 0) {
+                const line = buffer
+                buffer = ''
+                return parseNextLine(line)
+              }
+              return { done: true, value: undefined as T }
+            }
+
+            let chunk: ReadableStreamReadResult<Uint8Array>
+            try {
+              chunk = await reader.read()
+            } catch (error) {
+              closed = true
+              releaseReader()
+              throw error
+            }
+            if (closed) {
+              return { done: true, value: undefined as T }
+            }
+            if (chunk.done) {
+              buffer += decoder.decode()
+              doneReading = true
+            } else {
+              buffer += decoder.decode(chunk.value, { stream: true })
+            }
+          }
+        },
+        async return(reason?: unknown): Promise<IteratorResult<T>> {
+          if (!closed) {
+            closed = true
+            await cancelReader(reason)
+          }
+          return { done: true, value: undefined as T }
+        },
+      }
+    },
   }
 }
 
