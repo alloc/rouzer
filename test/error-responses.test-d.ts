@@ -1,12 +1,6 @@
 import { $type, $error, createClient, createRouter } from 'rouzer'
 import * as http from 'rouzer/http'
-
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
-    ? true
-    : false
-
-type Assert<T extends true> = T
+import { expectTypeOf, test } from 'vitest'
 
 // --- Route with response map ---
 
@@ -30,47 +24,48 @@ const client = createClient({
   routes,
 })
 
-// Client action returns a discriminated tuple
 type GetUserResult = Awaited<ReturnType<typeof client.getUser>>
 
-type _ClientReturnsDiscriminatedTuple = Assert<
-  Equal<
-    GetUserResult,
+test('response maps produce discriminated client tuples', () => {
+  expectTypeOf<GetUserResult>().toEqualTypeOf<
     | [null, User, 200]
     | [null, User, 201]
     | [AuthError, null, 401]
     | [NotFoundError, null, 404]
-  >
->
-
-// Handler can return success value or ctx.error(...)
-createRouter().use(routes, {
-  getUser(ctx) {
-    if (ctx.path.id === 'missing') {
-      return ctx.error(404, { code: 'NOT_FOUND', message: 'not found' })
-    }
-    if (ctx.path.id === 'unauthorized') {
-      return ctx.error(401, { code: 'UNAUTHORIZED', message: 'no auth' })
-    }
-    if (ctx.path.id === 'created') {
-      return ctx.success(201, { id: ctx.path.id, name: 'Ada' })
-    }
-    return { id: ctx.path.id, name: 'Ada' }
-  },
+  >()
 })
 
-createRouter().use(routes, {
-  getUser(ctx) {
-    // @ts-expect-error 500 is not a declared error status.
-    ctx.error(500, { code: 'NOT_FOUND', message: 'nope' })
-    // @ts-expect-error Error body must match the selected status.
-    ctx.error(404, { code: 'UNAUTHORIZED', message: 'nope' })
-    // @ts-expect-error 404 is not a declared success status.
-    ctx.success(404, { code: 'NOT_FOUND', message: 'nope' })
-    // @ts-expect-error Success body must match the selected status.
-    ctx.success(201, { id: 123, name: 'Ada' })
-    return { id: ctx.path.id, name: 'Ada' }
-  },
+test('response map handlers can return success values and helpers', () => {
+  createRouter().use(routes, {
+    getUser(ctx) {
+      if (ctx.path.id === 'missing') {
+        return ctx.error(404, { code: 'NOT_FOUND', message: 'not found' })
+      }
+      if (ctx.path.id === 'unauthorized') {
+        return ctx.error(401, { code: 'UNAUTHORIZED', message: 'no auth' })
+      }
+      if (ctx.path.id === 'created') {
+        return ctx.success(201, { id: ctx.path.id, name: 'Ada' })
+      }
+      return { id: ctx.path.id, name: 'Ada' }
+    },
+  })
+})
+
+test('response map helpers reject undeclared statuses and mismatched bodies', () => {
+  createRouter().use(routes, {
+    getUser(ctx) {
+      // @ts-expect-error 500 is not a declared error status.
+      ctx.error(500, { code: 'NOT_FOUND', message: 'nope' })
+      // @ts-expect-error Error body must match the selected status.
+      ctx.error(404, { code: 'UNAUTHORIZED', message: 'nope' })
+      // @ts-expect-error 404 is not a declared success status.
+      ctx.success(404, { code: 'NOT_FOUND', message: 'nope' })
+      // @ts-expect-error Success body must match the selected status.
+      ctx.success(201, { id: 123, name: 'Ada' })
+      return { id: ctx.path.id, name: 'Ada' }
+    },
+  })
 })
 
 // --- Verify existing $type<T>() still works ---
@@ -87,6 +82,6 @@ const simpleClient = createClient({
 
 type SimpleResult = Awaited<ReturnType<typeof simpleClient.simpleRoute>>
 
-type _SimpleRouteStillReturnsPlainType = Assert<
-  Equal<SimpleResult, { message: string }>
->
+test('plain response markers still return plain client values', () => {
+  expectTypeOf<SimpleResult>().toEqualTypeOf<{ message: string }>()
+})

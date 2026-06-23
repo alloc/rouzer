@@ -1,13 +1,7 @@
 import { createClient, createRouter } from 'rouzer'
 import * as http from 'rouzer/http'
 import * as ndjson from 'rouzer/ndjson'
-
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
-    ? true
-    : false
-
-type Assert<T extends true> = T
+import { expectTypeOf, test } from 'vitest'
 
 type Event = {
   id: number
@@ -26,27 +20,33 @@ const client = createClient({
   plugins: [ndjson.clientPlugin],
 })
 
-type _ClientActionReturnsAsyncIterable = Assert<
-  Equal<Awaited<ReturnType<typeof client.events>>, AsyncIterable<Event>>
->
-
-createRouter({ plugins: [ndjson.routerPlugin] }).use(routes, {
-  events() {
-    return (async function* () {
-      yield { id: 1, message: 'ready' }
-    })()
-  },
+test('NDJSON client actions return async iterables', () => {
+  expectTypeOf<Awaited<ReturnType<typeof client.events>>>().toEqualTypeOf<
+    AsyncIterable<Event>
+  >()
 })
 
-createRouter({ plugins: [ndjson.routerPlugin] }).use(routes, {
-  events() {
-    return [{ id: 1, message: 'ready' }]
-  },
+test('NDJSON handlers can return sync or async iterables', () => {
+  createRouter({ plugins: [ndjson.routerPlugin] }).use(routes, {
+    events() {
+      return (async function* () {
+        yield { id: 1, message: 'ready' }
+      })()
+    },
+  })
+
+  createRouter({ plugins: [ndjson.routerPlugin] }).use(routes, {
+    events() {
+      return [{ id: 1, message: 'ready' }]
+    },
+  })
 })
 
-createRouter({ plugins: [ndjson.routerPlugin] }).use(routes, {
-  // @ts-expect-error NDJSON handlers must return an iterable or Response.
-  events() {
-    return { id: 1, message: 'ready' }
-  },
+test('NDJSON handlers reject non-iterable values', () => {
+  createRouter({ plugins: [ndjson.routerPlugin] }).use(routes, {
+    // @ts-expect-error NDJSON handlers must return an iterable or Response.
+    events() {
+      return { id: 1, message: 'ready' }
+    },
+  })
 })

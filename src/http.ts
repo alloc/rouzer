@@ -1,4 +1,10 @@
 import { RoutePattern } from '@remix-run/route-pattern'
+import {
+  getRouteMetadata,
+  stripRouteMetadata,
+  type RouteMetadata,
+  type RouteMetadataMarker,
+} from './metadata.js'
 import type { RawBodySchema, RouteSchema } from './types/schema.js'
 
 /** HTTP methods supported by Rouzer action declarations. */
@@ -23,6 +29,8 @@ export type HttpAction<
   method: M
   /** Request validation and optional response type schema. */
   schema: T
+  /** Optional runtime metadata for generated tooling. */
+  metadata?: RouteMetadata
 }
 
 /**
@@ -41,6 +49,8 @@ export type HttpResource<
   path: RoutePattern<P>
   /** Child resources and actions exposed below this resource. */
   children: TChildren
+  /** Optional runtime metadata for generated tooling. */
+  metadata?: RouteMetadata
 }
 
 /** Node type accepted inside an HTTP route tree. */
@@ -48,6 +58,10 @@ export type HttpNode = HttpAction | HttpResource
 
 /** Route tree accepted by HTTP clients and routers. */
 export type HttpRouteTree = { [key: string]: HttpNode }
+
+type RouteDeclaration<T extends object> = T & Partial<RouteMetadataMarker>
+
+type StringKeys<T> = Pick<T, Extract<keyof T, string>>
 
 /**
  * Declare an HTTP resource namespace.
@@ -59,25 +73,30 @@ export type HttpRouteTree = { [key: string]: HttpNode }
 export function resource<
   const P extends string,
   const TChildren extends HttpRouteTree,
->(path: P, children: TChildren): HttpResource<P, TChildren> {
+>(
+  path: P,
+  children: RouteDeclaration<TChildren>
+): HttpResource<P, StringKeys<TChildren>> {
+  const metadata = getRouteMetadata(children)
   return {
     kind: 'resource',
     path: RoutePattern.parse(path),
-    children,
+    children: stripRouteMetadata(children) as unknown as StringKeys<TChildren>,
+    metadata,
   }
 }
 
 /** Declare a GET action, optionally with an action-local path segment. */
 export function get<const P extends string, const T extends RouteSchema>(
   path: P,
-  schema: T
+  schema: RouteDeclaration<T>
 ): HttpAction<P, T, 'GET'>
 export function get<const T extends RouteSchema>(
-  schema: T
+  schema: RouteDeclaration<T>
 ): HttpAction<'', T, 'GET'>
 export function get(
-  pathOrSchema: string | RouteSchema,
-  schema?: RouteSchema
+  pathOrSchema: string | RouteDeclaration<RouteSchema>,
+  schema?: RouteDeclaration<RouteSchema>
 ): any {
   return action('GET', pathOrSchema, schema)
 }
@@ -85,14 +104,14 @@ export function get(
 /** Declare a POST action, optionally with an action-local path segment. */
 export function post<const P extends string, const T extends RouteSchema>(
   path: P,
-  schema: T
+  schema: RouteDeclaration<T>
 ): HttpAction<P, T, 'POST'>
 export function post<const T extends RouteSchema>(
-  schema: T
+  schema: RouteDeclaration<T>
 ): HttpAction<'', T, 'POST'>
 export function post(
-  pathOrSchema: string | RouteSchema,
-  schema?: RouteSchema
+  pathOrSchema: string | RouteDeclaration<RouteSchema>,
+  schema?: RouteDeclaration<RouteSchema>
 ): any {
   return action('POST', pathOrSchema, schema)
 }
@@ -100,14 +119,14 @@ export function post(
 /** Declare a PUT action, optionally with an action-local path segment. */
 export function put<const P extends string, const T extends RouteSchema>(
   path: P,
-  schema: T
+  schema: RouteDeclaration<T>
 ): HttpAction<P, T, 'PUT'>
 export function put<const T extends RouteSchema>(
-  schema: T
+  schema: RouteDeclaration<T>
 ): HttpAction<'', T, 'PUT'>
 export function put(
-  pathOrSchema: string | RouteSchema,
-  schema?: RouteSchema
+  pathOrSchema: string | RouteDeclaration<RouteSchema>,
+  schema?: RouteDeclaration<RouteSchema>
 ): any {
   return action('PUT', pathOrSchema, schema)
 }
@@ -115,14 +134,14 @@ export function put(
 /** Declare a PATCH action, optionally with an action-local path segment. */
 export function patch<const P extends string, const T extends RouteSchema>(
   path: P,
-  schema: T
+  schema: RouteDeclaration<T>
 ): HttpAction<P, T, 'PATCH'>
 export function patch<const T extends RouteSchema>(
-  schema: T
+  schema: RouteDeclaration<T>
 ): HttpAction<'', T, 'PATCH'>
 export function patch(
-  pathOrSchema: string | RouteSchema,
-  schema?: RouteSchema
+  pathOrSchema: string | RouteDeclaration<RouteSchema>,
+  schema?: RouteDeclaration<RouteSchema>
 ): any {
   return action('PATCH', pathOrSchema, schema)
 }
@@ -130,14 +149,14 @@ export function patch(
 /** Declare a DELETE action, optionally with an action-local path segment. */
 function deleteAction<const P extends string, const T extends RouteSchema>(
   path: P,
-  schema: T
+  schema: RouteDeclaration<T>
 ): HttpAction<P, T, 'DELETE'>
 function deleteAction<const T extends RouteSchema>(
-  schema: T
+  schema: RouteDeclaration<T>
 ): HttpAction<'', T, 'DELETE'>
 function deleteAction(
-  pathOrSchema: string | RouteSchema,
-  schema?: RouteSchema
+  pathOrSchema: string | RouteDeclaration<RouteSchema>,
+  schema?: RouteDeclaration<RouteSchema>
 ): any {
   return action('DELETE', pathOrSchema, schema)
 }
@@ -163,13 +182,20 @@ export function isRawBodySchema(schema: unknown): schema is RawBodySchema {
 
 function action(
   method: HttpMethod,
-  pathOrSchema: string | RouteSchema,
-  schema?: RouteSchema
+  pathOrSchema: string | RouteDeclaration<RouteSchema>,
+  schema?: RouteDeclaration<RouteSchema>
 ) {
   const path =
     typeof pathOrSchema === 'string'
       ? RoutePattern.parse(pathOrSchema)
       : undefined
   schema ??= typeof pathOrSchema === 'string' ? {} : pathOrSchema
-  return { kind: 'action', path, method, schema }
+  const metadata = getRouteMetadata(schema)
+  return {
+    kind: 'action',
+    path,
+    method,
+    schema: stripRouteMetadata(schema),
+    metadata,
+  }
 }

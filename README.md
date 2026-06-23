@@ -59,7 +59,7 @@ Import the primary API from the root package and declare routes through the HTTP
 subpath:
 
 ```ts
-import { $error, $type, chain, createClient, createRouter } from 'rouzer'
+import { $error, $type, chain, createClient, createRouter, metadata } from 'rouzer'
 import * as http from 'rouzer/http'
 ```
 
@@ -180,6 +180,29 @@ await client.upload(file, { headers: { 'content-type': file.type } })
 
 Server handlers for raw-body routes read from `ctx.request` directly with Fetch
 APIs such as `arrayBuffer()`, `blob()`, `formData()`, or `text()`.
+
+### Route metadata
+
+Use `metadata(...)` to attach optional runtime metadata to HTTP resources or
+actions. Metadata does not affect routing, validation, client typing, or handler
+behavior; it is preserved on route nodes for generated clients, CLIs, docs, and
+route inspectors.
+
+```ts
+export const sessions = http.resource('sessions', {
+  ...metadata({
+    description: 'Daemon-managed session control.',
+  }),
+  list: http.post('list', {
+    ...metadata({
+      description: 'Lists daemon-managed sessions and pagination state.',
+    }),
+    response: $type<SessionList>(),
+  }),
+})
+```
+
+The constructed nodes expose metadata as `node.metadata`.
 
 ### Client lifecycle hooks
 

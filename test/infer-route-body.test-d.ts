@@ -1,13 +1,7 @@
 import * as z from 'zod'
 import type { InferRouteBody } from 'rouzer'
 import * as http from 'rouzer/http'
-
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
-    ? true
-    : false
-
-type Assert<T extends true> = T
+import { expectTypeOf, test } from 'vitest'
 
 const createUser = http.post('users', {
   body: z.object({
@@ -15,18 +9,16 @@ const createUser = http.post('users', {
   }),
 })
 
-type _BodyFromSchema = Assert<
-  Equal<InferRouteBody<typeof createUser.schema>, { name: string }>
->
-
 const looseMutation = http.post('users/loose', {})
-
-type _UnknownWhenBodySchemaMissing = Assert<
-  Equal<InferRouteBody<typeof looseMutation.schema>, unknown>
->
 
 const getUser = http.get('users/:id', {})
 
-type _UnknownForGetActionSchema = Assert<
-  Equal<InferRouteBody<typeof getUser.schema>, unknown>
->
+test('infers route bodies from action schemas', () => {
+  expectTypeOf<InferRouteBody<typeof createUser.schema>>().toEqualTypeOf<{
+    name: string
+  }>()
+  expectTypeOf<
+    InferRouteBody<typeof looseMutation.schema>
+  >().toEqualTypeOf<unknown>()
+  expectTypeOf<InferRouteBody<typeof getUser.schema>>().toEqualTypeOf<unknown>()
+})

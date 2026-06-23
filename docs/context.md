@@ -72,6 +72,29 @@ paths are joined, so the examples above expose `profiles/:id`, `profiles/:id`,
 and `profiles/:id/posts`. Path params from parent resources are accumulated into
 child action types.
 
+Use the root `metadata(...)` helper to attach optional runtime metadata to
+resources or actions without changing route matching, validation, client typing,
+or handler behavior:
+
+```ts
+import { metadata } from 'rouzer'
+
+export const sessions = http.resource('sessions', {
+  ...metadata({
+    description: 'Daemon-managed session control.',
+  }),
+  list: http.post('list', {
+    ...metadata({
+      description: 'Lists daemon-managed sessions and pagination state.',
+    }),
+    response: $type<SessionList>(),
+  }),
+})
+```
+
+Constructed route nodes expose metadata through `node.metadata` for generated
+clients, CLIs, docs, and route inspectors.
+
 Patterns are parsed by `@remix-run/route-pattern` v0.21. Params can be inferred
 from patterns such as `hello/:name`, `v:major.:minor`,
 `api(/v:major(.:minor))`, `assets/*path`, and `search?q`. Full URL patterns such
