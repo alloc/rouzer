@@ -3,7 +3,6 @@ import {
   getRouteMetadata,
   stripRouteMetadata,
   type RouteMetadata,
-  type RouteMetadataMarker,
 } from './metadata.js'
 import type { RawBodySchema, RouteSchema } from './types/schema.js'
 
@@ -59,8 +58,6 @@ export type HttpNode = HttpAction | HttpResource
 /** Route tree accepted by HTTP clients and routers. */
 export type HttpRouteTree = { [key: string]: HttpNode }
 
-type RouteDeclaration<T extends object> = T & Partial<RouteMetadataMarker>
-
 type StringKeys<T> = Pick<T, Extract<keyof T, string>>
 
 /**
@@ -75,7 +72,7 @@ export function resource<
   const TChildren extends HttpRouteTree,
 >(
   path: P,
-  children: RouteDeclaration<TChildren>
+  children: TChildren
 ): HttpResource<P, StringKeys<TChildren>> {
   const metadata = getRouteMetadata(children)
   return {
@@ -89,14 +86,14 @@ export function resource<
 /** Declare a GET action, optionally with an action-local path segment. */
 export function get<const P extends string, const T extends RouteSchema>(
   path: P,
-  schema: RouteDeclaration<T>
+  schema: T
 ): HttpAction<P, T, 'GET'>
 export function get<const T extends RouteSchema>(
-  schema: RouteDeclaration<T>
+  schema: T
 ): HttpAction<'', T, 'GET'>
 export function get(
-  pathOrSchema: string | RouteDeclaration<RouteSchema>,
-  schema?: RouteDeclaration<RouteSchema>
+  pathOrSchema: string | RouteSchema,
+  schema?: RouteSchema
 ): any {
   return action('GET', pathOrSchema, schema)
 }
@@ -104,14 +101,14 @@ export function get(
 /** Declare a POST action, optionally with an action-local path segment. */
 export function post<const P extends string, const T extends RouteSchema>(
   path: P,
-  schema: RouteDeclaration<T>
+  schema: T
 ): HttpAction<P, T, 'POST'>
 export function post<const T extends RouteSchema>(
-  schema: RouteDeclaration<T>
+  schema: T
 ): HttpAction<'', T, 'POST'>
 export function post(
-  pathOrSchema: string | RouteDeclaration<RouteSchema>,
-  schema?: RouteDeclaration<RouteSchema>
+  pathOrSchema: string | RouteSchema,
+  schema?: RouteSchema
 ): any {
   return action('POST', pathOrSchema, schema)
 }
@@ -119,14 +116,14 @@ export function post(
 /** Declare a PUT action, optionally with an action-local path segment. */
 export function put<const P extends string, const T extends RouteSchema>(
   path: P,
-  schema: RouteDeclaration<T>
+  schema: T
 ): HttpAction<P, T, 'PUT'>
 export function put<const T extends RouteSchema>(
-  schema: RouteDeclaration<T>
+  schema: T
 ): HttpAction<'', T, 'PUT'>
 export function put(
-  pathOrSchema: string | RouteDeclaration<RouteSchema>,
-  schema?: RouteDeclaration<RouteSchema>
+  pathOrSchema: string | RouteSchema,
+  schema?: RouteSchema
 ): any {
   return action('PUT', pathOrSchema, schema)
 }
@@ -134,14 +131,14 @@ export function put(
 /** Declare a PATCH action, optionally with an action-local path segment. */
 export function patch<const P extends string, const T extends RouteSchema>(
   path: P,
-  schema: RouteDeclaration<T>
+  schema: T
 ): HttpAction<P, T, 'PATCH'>
 export function patch<const T extends RouteSchema>(
-  schema: RouteDeclaration<T>
+  schema: T
 ): HttpAction<'', T, 'PATCH'>
 export function patch(
-  pathOrSchema: string | RouteDeclaration<RouteSchema>,
-  schema?: RouteDeclaration<RouteSchema>
+  pathOrSchema: string | RouteSchema,
+  schema?: RouteSchema
 ): any {
   return action('PATCH', pathOrSchema, schema)
 }
@@ -149,14 +146,14 @@ export function patch(
 /** Declare a DELETE action, optionally with an action-local path segment. */
 function deleteAction<const P extends string, const T extends RouteSchema>(
   path: P,
-  schema: RouteDeclaration<T>
+  schema: T
 ): HttpAction<P, T, 'DELETE'>
 function deleteAction<const T extends RouteSchema>(
-  schema: RouteDeclaration<T>
+  schema: T
 ): HttpAction<'', T, 'DELETE'>
 function deleteAction(
-  pathOrSchema: string | RouteDeclaration<RouteSchema>,
-  schema?: RouteDeclaration<RouteSchema>
+  pathOrSchema: string | RouteSchema,
+  schema?: RouteSchema
 ): any {
   return action('DELETE', pathOrSchema, schema)
 }
@@ -182,8 +179,8 @@ export function isRawBodySchema(schema: unknown): schema is RawBodySchema {
 
 function action(
   method: HttpMethod,
-  pathOrSchema: string | RouteDeclaration<RouteSchema>,
-  schema?: RouteDeclaration<RouteSchema>
+  pathOrSchema: string | RouteSchema,
+  schema?: RouteSchema
 ) {
   const path =
     typeof pathOrSchema === 'string'

@@ -29,6 +29,8 @@ const client = createClient({
 })
 
 test('metadata does not change client or handler types', () => {
+  expectTypeOf(metadata({ summary: 'Sessions' })).toEqualTypeOf<object>()
+
   expectTypeOf<
     Extract<keyof typeof sessions.children.list.schema, string>
   >().toEqualTypeOf<'path' | 'body'>()

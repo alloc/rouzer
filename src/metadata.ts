@@ -8,12 +8,12 @@ export type RouteMetadata = {
   description?: string
 }
 
-export type RouteMetadataMarker = {
+type RouteMetadataMarker = {
   readonly [routeMetadataKey]: RouteMetadata
 }
 
 /** Attach runtime metadata to a route declaration. */
-export function metadata(value: RouteMetadata): RouteMetadataMarker {
+export function metadata(value: RouteMetadata): object {
   return { [routeMetadataKey]: value }
 }
 
