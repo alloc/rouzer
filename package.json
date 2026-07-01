@@ -28,7 +28,6 @@
   },
   "devDependencies": {
     "@alloc/prettier-config": "^1.0.0",
-    "@hattip/adapter-test": "^0.0.49",
     "@types/node": "^25.8.0",
     "@typescript/native-preview": "7.0.0-dev.20260515.1",
     "prettier": "^3.8.3",
@@ -40,9 +39,8 @@
     "zod": "^4.4.3"
   },
   "dependencies": {
-    "@hattip/core": "^0.0.49",
     "@remix-run/route-pattern": "^0.22.1",
-    "alien-middleware": "^0.11.6"
+    "alien-middleware": "^0.12.0"
   },
   "prettier": "@alloc/prettier-config",
   "license": "MIT",

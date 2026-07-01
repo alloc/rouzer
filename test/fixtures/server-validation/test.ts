@@ -1,7 +1,12 @@
-import { createTestClient } from '@hattip/adapter-test'
+import { toFetchHandler } from 'rouzer'
 import handler from './handler.js'
 
 const baseURL = 'http://test.local'
+const fetchHandler = toFetchHandler(handler)
+
+function createLocalFetch(): typeof fetch {
+  return (input, init) => fetchHandler(new Request(input, init))
+}
 
 async function assertInvalid(
   fetch: typeof globalThis.fetch,
@@ -19,10 +24,7 @@ async function assertInvalid(
 export default {
   name: 'server validation rejects invalid inputs',
   async run() {
-    const fetch = createTestClient({
-      handler,
-      baseUrl: baseURL,
-    })
+    const fetch = createLocalFetch()
 
     await assertInvalid(
       fetch,

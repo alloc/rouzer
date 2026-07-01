@@ -1,19 +1,24 @@
-import { createTestClient } from '@hattip/adapter-test'
-import type { HattipHandler } from '@hattip/core'
 import {
   createClient,
+  toFetchHandler,
   type ClientResponsePlugin,
+  type RequestHandler,
   type RouzerClient,
 } from 'rouzer'
 import type { HttpRouteTree } from 'rouzer/http'
 
-type CreateTestConfig<TRoutes extends HttpRouteTree, P = unknown> = {
+type CreateTestConfig<TRoutes extends HttpRouteTree> = {
   name: string
   routes: TRoutes
-  handler: HattipHandler<P>
+  handler: RequestHandler
   baseURL?: string
   clientPlugins?: readonly ClientResponsePlugin[]
   test: (client: RouzerClient<TRoutes>) => void | Promise<void>
+}
+
+function createLocalFetch(handler: RequestHandler): typeof fetch {
+  const fetchHandler = toFetchHandler(handler)
+  return (input, init) => fetchHandler(new Request(input, init))
 }
 
 export type TestFixture = {
@@ -21,14 +26,14 @@ export type TestFixture = {
   run: () => Promise<void>
 }
 
-export function createTest<TRoutes extends HttpRouteTree, P = unknown>({
+export function createTest<TRoutes extends HttpRouteTree>({
   name,
   routes,
   handler,
   baseURL = 'http://test.local',
   clientPlugins,
   test,
-}: CreateTestConfig<TRoutes, P>): TestFixture {
+}: CreateTestConfig<TRoutes>): TestFixture {
   return {
     name,
     async run() {
@@ -36,10 +41,7 @@ export function createTest<TRoutes extends HttpRouteTree, P = unknown>({
         baseURL,
         routes,
         plugins: clientPlugins,
-        fetch: createTestClient({
-          handler,
-          baseUrl: baseURL,
-        }),
+        fetch: createLocalFetch(handler),
       })
 
       await test(client)

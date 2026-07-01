@@ -1,7 +1,7 @@
 # Rouzer
 
 Rouzer lets you declare an HTTP route tree once and share its TypeScript types
-and Zod validation between a Hattip-compatible server and a typed fetch client.
+and Zod validation between a fetch-compatible server and a typed fetch client.
 The client is always created from that route tree.
 
 ## What it does
@@ -28,7 +28,7 @@ Use Rouzer if:
 - you want Zod request validation on both sides of an HTTP boundary
 - response data is validated at data/client boundaries, not by re-checking every
   handler return
-- a Hattip-compatible handler fits your server runtime
+- a fetch-compatible handler fits your server runtime
 - you prefer named resource/action functions over a generated client class
 
 Consider something else if:
@@ -45,7 +45,7 @@ Consider something else if:
 
 - ESM runtime and tooling
 - Zod v4 or newer
-- a Hattip adapter when using `createRouter(...)`
+- a fetch-compatible server or adapter when using `createRouter(...)`
 - a Fetch API implementation when using `createClient(...)`
 - an absolute `baseURL` and shared `routes` tree for generated client URLs
 
@@ -59,7 +59,14 @@ Import the primary API from the root package and declare routes through the HTTP
 subpath:
 
 ```ts
-import { $error, $type, chain, createClient, createRouter, metadata } from 'rouzer'
+import {
+  $error,
+  $type,
+  chain,
+  createClient,
+  createRouter,
+  metadata,
+} from 'rouzer'
 import * as http from 'rouzer/http'
 ```
 
@@ -103,7 +110,8 @@ const { message } = await client.hello({
 })
 ```
 
-`handler` can be mounted with any Hattip adapter. Generated client action calls
+`handler` can be mounted with the re-exported `toFetchHandler` helper or any
+compatible Fetch API server. Generated client action calls
 validate flat route arguments before `fetch`; server handlers validate matched
 path, query, headers, and JSON bodies before your handler runs. Per-request
 headers, abort signals, and other `RequestInit` options are passed as a second

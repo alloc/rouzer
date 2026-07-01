@@ -1,4 +1,3 @@
-import type { AdapterRequestContext, HattipHandler } from '@hattip/core'
 import { RoutePattern } from '@remix-run/route-pattern'
 import { createMatcher, type Matcher } from '@remix-run/route-pattern/match'
 import {
@@ -8,6 +7,7 @@ import {
   MiddlewareChain,
   MiddlewareTypes,
   RequestContext,
+  RequestHandler,
 } from 'alien-middleware'
 import * as z from 'zod'
 import { mapValues } from '../common.js'
@@ -269,11 +269,11 @@ class RouterObject extends MiddlewareChain {
 }
 
 /**
- * Hattip-compatible Rouzer handler with chainable middleware and route
+ * Fetch-compatible Rouzer handler with chainable middleware and route
  * registration.
  */
 export interface Router<T extends MiddlewareTypes = any>
-  extends HattipHandler<T['platform']>, MiddlewareChain<T> {
+  extends RequestHandler<T>, MiddlewareChain<T> {
   /**
    * Clone this router and add the given middleware to the end of the chain.
    *
@@ -299,20 +299,20 @@ export interface Router<T extends MiddlewareTypes = any>
 }
 
 /**
- * Create a Rouzer router that can be mounted by any Hattip adapter.
+ * Create a Rouzer router that can be mounted as a fetch-compatible handler.
  *
  * @param config Optional router configuration for base path, debug behavior,
  * response plugins, and CORS origin restrictions.
- * @returns A Hattip-compatible handler with `.use(...)` methods for middleware
+ * @returns A fetch-compatible handler with `.use(...)` methods for middleware
  * and route registration.
  */
 export function createRouter<
   TEnv extends object = {},
   TProperties extends object = {},
-  TPlatform = unknown,
+  TRuntime = unknown,
 >(
   config: RouterConfig = {}
-): Router<MiddlewareTypes<TEnv, TProperties, TPlatform>> {
+): Router<MiddlewareTypes<TEnv, TProperties, TRuntime>> {
   const router = new RouterObject(config)
   const handler = router.toHandler()
   Object.setPrototypeOf(handler, router)
@@ -402,7 +402,7 @@ function httpClientError(
 }
 
 function parsePathParams(
-  context: AdapterRequestContext & { path?: {} },
+  context: RequestContext & { path?: {} },
   schema: z.ZodType<any, any>,
   params: {}
 ) {
@@ -415,7 +415,7 @@ function parsePathParams(
 }
 
 function parseHeaders(
-  context: AdapterRequestContext & { headers?: {} },
+  context: RequestContext & { headers?: {} },
   schema: z.ZodType<any, any>
 ) {
   const headers = Object.fromEntries(context.request.headers as any)
@@ -428,7 +428,7 @@ function parseHeaders(
 }
 
 function parseQueryString(
-  context: AdapterRequestContext & { url?: URL; query?: {} },
+  context: RequestContext & { url?: URL; query?: {} },
   schema: z.ZodType<any, any>
 ) {
   const result = schema.safeParse(
@@ -442,7 +442,7 @@ function parseQueryString(
 }
 
 async function parseRequestBody(
-  context: AdapterRequestContext & { body?: {} },
+  context: RequestContext & { body?: {} },
   schema: z.ZodType<any, any>
 ) {
   const result = await context.request.json().then(

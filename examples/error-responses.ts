@@ -1,5 +1,10 @@
-import type { HattipHandler } from '@hattip/core'
-import { $error, $type, createClient, createRouter } from 'rouzer'
+import {
+  $error,
+  $type,
+  createClient,
+  createRouter,
+  toFetchHandler,
+} from 'rouzer'
 import * as http from 'rouzer/http'
 
 type User = {
@@ -28,28 +33,11 @@ export const getUser = http.get('users/:id', {
 
 export const routes = { getUser }
 
-/**
- * Tiny Hattip adapter used only to keep this example self-contained. Real apps
- * mount the handler with a Hattip adapter for their runtime.
- */
-function createLocalFetch(handler: HattipHandler): typeof fetch {
-  return async (input, init) => {
-    const request = new Request(input, init)
-    const response = await handler({
-      request,
-      ip: '127.0.0.1',
-      platform: undefined,
-      env() {
-        return undefined
-      },
-      passThrough() {},
-      waitUntil(promise) {
-        void promise
-      },
-    })
-
-    return response ?? new Response(null, { status: 404 })
-  }
+function createLocalFetch(
+  handler: ReturnType<typeof createRouter>
+): typeof fetch {
+  const fetchHandler = toFetchHandler(handler)
+  return (input, init) => fetchHandler(new Request(input, init))
 }
 
 export async function runErrorResponsesExample() {

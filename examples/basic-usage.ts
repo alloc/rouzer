@@ -1,6 +1,11 @@
-import type { HattipHandler } from '@hattip/core'
 import * as z from 'zod'
-import { $type, chain, createClient, createRouter } from 'rouzer'
+import {
+  $type,
+  chain,
+  createClient,
+  createRouter,
+  toFetchHandler,
+} from 'rouzer'
 import * as http from 'rouzer/http'
 
 type Profile = {
@@ -30,28 +35,11 @@ export const profiles = http.resource('profiles/:id', {
 
 export const routes = { profiles }
 
-/**
- * Tiny Hattip adapter used only to keep this example self-contained. Real apps
- * mount the handler with a Hattip adapter for their runtime.
- */
-function createLocalFetch(handler: HattipHandler): typeof fetch {
-  return async (input, init) => {
-    const request = new Request(input, init)
-    const response = await handler({
-      request,
-      ip: '127.0.0.1',
-      platform: undefined,
-      env() {
-        return undefined
-      },
-      passThrough() {},
-      waitUntil(promise) {
-        void promise
-      },
-    })
-
-    return response ?? new Response(null, { status: 404 })
-  }
+function createLocalFetch(
+  handler: ReturnType<typeof createRouter>
+): typeof fetch {
+  const fetchHandler = toFetchHandler(handler)
+  return (input, init) => fetchHandler(new Request(input, init))
 }
 
 export async function runBasicUsageExample() {
@@ -101,7 +89,10 @@ export async function runBasicUsageExample() {
     fetch: createLocalFetch(handler),
   })
 
-  const fetched = await client.profiles.get({ id: '42', includePosts: false }, { headers: { 'x-request-id': 'docs' } })
+  const fetched = await client.profiles.get(
+    { id: '42', includePosts: false },
+    { headers: { 'x-request-id': 'docs' } }
+  )
 
   const updated = await client.profiles.update({ id: '42', name: 'Grace' })
 

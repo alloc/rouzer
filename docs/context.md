@@ -13,7 +13,7 @@ Use Rouzer when:
   declarations between server and client code
 - request validation should run before server handlers and before client `fetch`
   calls
-- a Hattip-compatible handler fits your server runtime
+- a fetch-compatible handler fits your server runtime
 - generated clients should stay close to route definitions instead of being
   produced by a separate OpenAPI build step
 
@@ -105,9 +105,9 @@ them out of resource/base-path composition.
 
 Method schemas describe the request pieces Rouzer should validate:
 
-| Action helper                     | Request schemas                        | Notes            |
-| --------------------------------- | -------------------------------------- | ---------------- |
-| `http.get(...)`                   | `path`, `query`, `headers`, `response` | No request body. |
+| Action helper                     | Request schemas                        | Notes                                                                                           |
+| --------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `http.get(...)`                   | `path`, `query`, `headers`, `response` | No request body.                                                                                |
 | `http.post/put/patch/delete(...)` | `path`, `body`, `headers`, `response`  | No query schema. `body` is a Zod object for JSON or `http.rawBody()` for pass-through payloads. |
 
 If you omit a `path` schema, TypeScript infers path params from the pattern and
@@ -191,7 +191,7 @@ payloads unless the plugin itself implements validation.
 
 ### Router
 
-`createRouter()` returns a Hattip-compatible handler. Use `.use(middleware)` to
+`createRouter()` returns a fetch-compatible handler. Use `.use(middleware)` to
 append typed `alien-middleware` middleware and `.use(routes, handlers)` to attach
 an HTTP route tree.
 

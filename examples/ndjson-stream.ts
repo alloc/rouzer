@@ -1,5 +1,4 @@
-import type { HattipHandler } from '@hattip/core'
-import { createClient, createRouter } from 'rouzer'
+import { createClient, createRouter, toFetchHandler } from 'rouzer'
 import * as http from 'rouzer/http'
 import * as ndjson from 'rouzer/ndjson'
 import { z } from 'zod'
@@ -31,28 +30,11 @@ export const stream = http.post('events/stream', {
 
 export const routes = { events, stream }
 
-/**
- * Tiny Hattip adapter used only to keep this example self-contained. Real apps
- * mount the handler with a Hattip adapter for their runtime.
- */
-function createLocalFetch(handler: HattipHandler): typeof fetch {
-  return async (input, init) => {
-    const request = new Request(input, init)
-    const response = await handler({
-      request,
-      ip: '127.0.0.1',
-      platform: undefined,
-      env() {
-        return undefined
-      },
-      passThrough() {},
-      waitUntil(promise) {
-        void promise
-      },
-    })
-
-    return response ?? new Response(null, { status: 404 })
-  }
+function createLocalFetch(
+  handler: ReturnType<typeof createRouter>
+): typeof fetch {
+  const fetchHandler = toFetchHandler(handler)
+  return (input, init) => fetchHandler(new Request(input, init))
 }
 
 async function collect<T>(source: AsyncIterable<T>) {
