@@ -1,7 +1,7 @@
 # Runtime and adapters
 
-Rouzer routers are Alien Middleware request handlers. Use adapter helpers to
-turn them into functions accepted by your HTTP server, framework, or tests.
+Rouzer routers are request handlers. Use adapter helpers to turn them into
+functions accepted by your HTTP server, framework, or tests.
 
 ## Plain Fetch Handler
 
@@ -16,8 +16,8 @@ const fetchHandler = toFetchHandler(router)
 const response = await fetchHandler(new Request('https://example.test/users'))
 ```
 
-`toFetchHandler(handler)` creates an Alien Middleware request context for each
-request and calls the handler.
+`toFetchHandler(handler)` creates a Rouzer request context for each request and
+calls the handler.
 
 ## Host Data
 
@@ -46,32 +46,20 @@ ctx.env('DATABASE_URL')
 ctx.waitUntil(writeAuditLog())
 ```
 
-Host runtime data lives under `ctx.host.runtime`. Rouzer and Alien Middleware do
-not expose the old Hattip `platform` alias.
+Host runtime data lives under `ctx.host.runtime`.
 
-## srvx
+## Fetch-Compatible Servers
 
-When mounting in srvx, use Alien Middleware's srvx subpath so srvx
-`ServerRequest` metadata is mapped into `context.host`.
+Many servers and frameworks accept a function that receives a Web `Request` and
+returns a `Response`. Mount `toFetchHandler(router)` in those environments.
 
 ```ts
-import { serve } from 'srvx'
-import { createRouter } from 'rouzer'
-import { toFetchHandler } from 'alien-middleware/srvx'
-
 const router = createRouter().use(routes, handlers)
-
-serve({
-  port: 3000,
-  fetch: toFetchHandler(router),
-})
+const fetch = toFetchHandler(router)
 ```
 
-The srvx adapter copies `request.ip`, `request.runtime`, and `request.waitUntil`
-into the Alien Middleware host shape when those values are available.
-
-Use the root `toFetchHandler` for plain Web `Request` tests and custom adapters.
-Use `alien-middleware/srvx` when the incoming request is a srvx `ServerRequest`.
+If the server exposes extra request metadata, pass it through the `host` option
+so middleware and handlers can read it from `ctx.host`.
 
 ## Custom Contexts
 
@@ -145,5 +133,4 @@ ctx.waitUntil(
 )
 ```
 
-The root adapter delegates to `host.waitUntil`. The srvx adapter delegates to
-`request.waitUntil` when srvx provides it.
+The adapter delegates to `host.waitUntil` when you provide it.

@@ -1,8 +1,8 @@
 # Middleware and request context
 
-Rouzer uses Alien Middleware for request context and middleware composition. The
-common middleware API is re-exported from `rouzer`, so most Rouzer applications
-can import from one package.
+Rouzer includes request context and middleware composition in its root API, so
+most applications can import route, middleware, and adapter helpers from one
+package.
 
 ```ts
 import {
@@ -15,13 +15,10 @@ import {
 } from 'rouzer'
 ```
 
-Use the `alien-middleware/srvx` subpath only when mounting directly in srvx and
-you need srvx `ServerRequest` metadata mapped into `context.host`.
-
 ## Middleware Chain
 
 `chain()` creates a `MiddlewareChain`. Rouzer routers are middleware chains too,
-so you can append Alien Middleware before attaching routes.
+so you can append middleware before attaching routes.
 
 ```ts
 const requestInfo = chain().use(ctx => ({
@@ -47,8 +44,7 @@ Middleware runs in order. A middleware can:
 
 ## Request Context
 
-Every middleware and Rouzer handler receives an Alien Middleware
-`RequestContext`.
+Every middleware and Rouzer handler receives a `RequestContext`.
 
 | Property                     | Purpose                                                                       |
 | ---------------------------- | ----------------------------------------------------------------------------- |
@@ -68,8 +64,7 @@ const runtimeName = ctx.host.runtime?.name
 const ip = ctx.host.ip
 ```
 
-There is no `ctx.platform` alias. Runtime-specific request data should stay
-behind `ctx.host.runtime`.
+Runtime-specific request data should stay behind `ctx.host.runtime`.
 
 ## Adding Context Properties
 

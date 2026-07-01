@@ -24,7 +24,7 @@ client usage.
 - Use `ndjson.$type<T>()` only for response streams where each line is a JSON
   value.
 - Put shared auth, tracing, request IDs, environment bindings, and host-runtime
-  checks in Alien Middleware before route registration.
+  checks in middleware before route registration.
 
 ## Constraints And Gotchas
 
@@ -54,7 +54,6 @@ client usage.
 
 - Host data is under `ctx.host`, including `ctx.host.ip` and
   `ctx.host.runtime`.
-- There is no Hattip `ctx.platform` alias in the v0.12 Alien Middleware model.
 - The `env`, `runtime`, and `onResponse` request plugin keys are reserved.
 - `runtime` is a type-level marker for `ctx.host.runtime`; it does not create
   `ctx.runtime`.
@@ -132,18 +131,8 @@ await client.profiles.get({ id: '42' })
 await client.profiles.update({ id: '42', name: 'Ada' })
 ```
 
-## Alien Middleware v0.12 Notes
+## Runtime Context Notes
 
-Rouzer now uses the srvx-era Alien Middleware Web request contract. If older
-code mentions Hattip types or platform aliases, update it to the current names:
-
-| Older concept                               | Current concept                                      |
-| ------------------------------------------- | ---------------------------------------------------- |
-| `AdapterRequestContext` from `@hattip/core` | `RequestContext` from `rouzer` or `alien-middleware` |
-| `HattipHandler`                             | `RequestHandler`                                     |
-| `ctx.platform`                              | `ctx.host.runtime`                                   |
-| platform type metadata                      | runtime type metadata                                |
-| `filterPlatform(...)`                       | `filterRuntime(...)`                                 |
-
-For plain Web requests, use root `toFetchHandler`. For srvx `ServerRequest`
-metadata, use `alien-middleware/srvx`.
+Use `ctx.host.runtime` for host runtime metadata and `filterRuntime(...)` for
+runtime-specific branches. Keep runtime checks at the middleware boundary so
+route handlers stay focused on request validation and application behavior.

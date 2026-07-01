@@ -14,5 +14,5 @@ This page has been split into focused guides. Existing links can use this map:
 - [Patterns, constraints, and migrations](patterns.md)
 
 Start with [Framework concepts](concepts.md) if you are new to Rouzer. Use
-[Middleware and request context](middleware.md) when you need the Alien
-Middleware model that Rouzer builds on.
+[Middleware and request context](middleware.md) when you need Rouzer's
+middleware and request-context model.

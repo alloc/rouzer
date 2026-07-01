@@ -1,7 +1,7 @@
 # Routers and handlers
 
-`createRouter()` returns a fetch-compatible Rouzer handler with Alien Middleware
-chain methods. Use it to compose middleware and attach route trees.
+`createRouter()` returns a fetch-compatible Rouzer handler with chain methods.
+Use it to compose middleware and attach route trees.
 
 ```ts
 import { createRouter } from 'rouzer'
@@ -12,7 +12,7 @@ export const router = createRouter({ basePath: 'api/' })
 ```
 
 The router is also a `RequestHandler`, so it can be mounted with
-`toFetchHandler(router)` or adapter-specific Alien Middleware helpers.
+`toFetchHandler(router)` or runtime-specific adapter helpers.
 
 ## Handler Maps
 
@@ -52,7 +52,7 @@ createRouter().use(routes, {
 
 ## Handler Context
 
-Handlers receive the Alien Middleware context plus values inferred from the
+Handlers receive the Rouzer request context plus values inferred from the
 matched route.
 
 `GET` handlers receive:

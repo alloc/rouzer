@@ -7,8 +7,7 @@ then it is reused by the router and generated client.
 
 Rouzer is not an OpenAPI generator, a response validator, or a full application
 framework. It focuses on shared route contracts, request validation, typed
-handlers, typed clients, and response helpers. Alien Middleware supplies the
-middleware and request-context layer under that router.
+handlers, typed clients, response helpers, middleware, and request context.
 
 ## The Main Objects
 
@@ -35,8 +34,7 @@ Resource:
 
 Router:
 
-- a fetch-compatible Alien Middleware request handler returned by
-  `createRouter(...)`
+- a fetch-compatible request handler returned by `createRouter(...)`
 - accepts middleware with `.use(middleware)`
 - accepts route trees with `.use(routes, handlers)`
 - validates matched requests before handlers run
@@ -50,7 +48,7 @@ Client:
 
 Middleware:
 
-- Alien Middleware functions that receive a shared `RequestContext`
+- functions that receive a shared `RequestContext`
 - can add typed properties, environment bindings, response callbacks, or runtime
   type markers
 - run before route handlers when attached before `.use(routes, handlers)`
@@ -101,17 +99,15 @@ The same action key becomes:
 - `client.profiles.get(input, options)` on the client
 - a route name such as `profiles.get` in client lifecycle hook events
 
-## Rouzer And Alien Middleware
+## Rouzer Middleware
 
-Rouzer's router extends Alien Middleware's `RequestHandler` and
-`MiddlewareChain`. That means a Rouzer router is both callable as a request
-handler and chainable with Alien Middleware helpers.
+Rouzer's router is both callable as a request handler and chainable with
+middleware helpers.
 
-Use Rouzer for route contracts and HTTP handler/client behavior. Use Alien
-Middleware concepts when you need request-scoped state, authentication,
-environment bindings, host runtime data, response callbacks, background work, or
-custom adapter contexts.
+Use route contracts for HTTP handler/client behavior. Use middleware when you
+need request-scoped state, authentication, environment bindings, host runtime
+data, response callbacks, background work, or custom adapter contexts.
 
-The common Alien Middleware API is re-exported from `rouzer`, including
-`chain`, `toFetchHandler`, `createContext`, `filterRuntime`, `RequestContext`,
-and `RequestHandler`.
+The common middleware API is exported from `rouzer`, including `chain`,
+`toFetchHandler`, `createContext`, `filterRuntime`, `RequestContext`, and
+`RequestHandler`.

@@ -1,9 +1,9 @@
 # Rouzer documentation
 
 Rouzer combines a shared TypeScript route tree, a fetch-compatible server
-router, a typed fetch client, and Alien Middleware request context composition.
-These guides are organized by concern so the docs directory is the complete
-entry point for what you can do and how the pieces fit together.
+router, a typed fetch client, and request context composition. These guides are
+organized by concern so the docs directory is the complete entry point for what
+you can do and how the pieces fit together.
 
 ## Learning Path
 
@@ -28,21 +28,21 @@ entry point for what you can do and how the pieces fit together.
 
 | Guide                                                | Concern                                                                                                                                             |
 | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Framework concepts](concepts.md)                    | The high-level model, request lifecycle, and Rouzer versus Alien Middleware responsibilities.                                                       |
+| [Framework concepts](concepts.md)                    | The high-level model, request lifecycle, and Rouzer's framework responsibilities.                                                                   |
 | [Route contracts](routes.md)                         | `rouzer/http` resources, actions, Zod schemas, raw bodies, path patterns, and metadata.                                                             |
 | [Middleware and request context](middleware.md)      | `chain`, request plugins, `RequestContext`, `context.host`, env access, `waitUntil`, `onResponse`, `passThrough`, isolation, and runtime filtering. |
 | [Routers and handlers](handlers.md)                  | `createRouter`, route handler maps, validated handler context, CORS, debug mode, middleware ordering, and handler return values.                    |
 | [Typed client](client.md)                            | `createClient`, generated action functions, flat input objects, headers, custom fetch, `onJsonError`, and lifecycle hooks.                          |
 | [Responses, errors, and plugins](responses.md)       | `$type`, `$error`, response maps, status tuples, custom `Response` returns, and response plugin contracts.                                          |
 | [NDJSON streaming](streaming.md)                     | Streaming response markers, router/client plugin registration, cancellation, and stream error modeling.                                             |
-| [Runtime and adapters](runtime.md)                   | Root `toFetchHandler`, srvx mounting, custom host data, tests, CORS, and background work.                                                           |
-| [Patterns, constraints, and migrations](patterns.md) | Preferred project structure, common constraints, and migration notes from older Rouzer and Alien Middleware shapes.                                 |
+| [Runtime and adapters](runtime.md)                   | Root `toFetchHandler`, fetch-compatible mounting, custom host data, tests, CORS, and background work.                                               |
+| [Patterns, constraints, and migrations](patterns.md) | Preferred project structure, common constraints, and migration notes from older Rouzer shapes.                                                      |
 
 ## Request Lifecycle
 
 1. A shared route module exports resources and actions.
-2. Server code creates a router, appends Alien Middleware, and attaches the route
-   tree with a handler map.
+2. Server code creates a router, appends middleware, and attaches the route tree
+   with a handler map.
 3. Runtime code mounts the router with `toFetchHandler` or an adapter-specific
    helper.
 4. Client code creates a generated client from the same route tree.
@@ -55,7 +55,7 @@ entry point for what you can do and how the pieces fit together.
 8. Response callbacks registered by middleware can finalize headers or replace
    the response before it leaves the chain.
 
-## Ownership Boundary
+## Framework Surface
 
 Rouzer owns:
 
@@ -65,11 +65,11 @@ Rouzer owns:
 - response markers, response maps, and response plugin integration
 - generated client action functions
 
-Alien Middleware owns:
+Rouzer middleware and runtime helpers cover:
 
 - middleware chaining and short-circuit behavior
 - request context creation and extension
 - host data such as `context.host.ip` and `context.host.runtime`
 - typed environment access through `context.env(...)`
 - `waitUntil`, `setHeader`, `onResponse`, `passThrough`, and chain isolation
-- adapter helpers such as root `toFetchHandler` and `alien-middleware/srvx`
+- adapter helpers such as `toFetchHandler`

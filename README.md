@@ -5,10 +5,9 @@ route tree between server and client code. The route tree defines URL patterns,
 named actions, request validation, and response contracts once, then Rouzer uses
 it to build a fetch-compatible router and a typed fetch client.
 
-Rouzer is built on Alien Middleware. Rouzer owns route contracts, validation,
-handler typing, response helpers, and the generated client. Alien Middleware
-owns the request context, middleware chain, host/runtime data, background work,
-and the adapter helpers that turn a chain into a Fetch API handler.
+Rouzer also includes a chainable middleware layer for request-scoped state,
+host/runtime data, background work, response callbacks, and adapter helpers that
+turn a router into a Fetch API handler.
 
 ## Use It When
 
@@ -47,7 +46,7 @@ import * as ndjson from 'rouzer/ndjson'
 ```
 
 `chain`, `toFetchHandler`, request context types, and related middleware helpers
-are re-exported from Alien Middleware for the common Rouzer path.
+are part of the root Rouzer API.
 
 ## Small Example
 
@@ -120,9 +119,9 @@ Route contracts live in shared TypeScript modules. Use `rouzer/http` resources
 for path-scoped namespaces and actions such as `http.get`, `http.post`, and
 `http.patch` for concrete HTTP operations.
 
-Routers are Alien Middleware request handlers. `createRouter()` returns a
-chainable handler; `.use(middleware)` appends middleware and `.use(routes,
-handlers)` attaches a route tree.
+Routers are chainable request handlers. `createRouter()` returns a handler;
+`.use(middleware)` appends middleware and `.use(routes, handlers)` attaches a
+route tree.
 
 Handlers mirror the route tree. Rouzer validates the matched request before the
 handler runs, then lets the handler return JSON data, a custom `Response`,
