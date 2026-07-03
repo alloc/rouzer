@@ -147,7 +147,7 @@ handler return values at the server boundary.
 - [NDJSON streaming](docs/streaming.md)
 - [Runtime and adapters](docs/runtime.md)
 - [Patterns, constraints, and migrations](docs/patterns.md)
-- [Migration from v5.3 to v5.4](docs/migration-v5.3-to-v5.4.md)
+- [Migration from v5 to v6](docs/migration-v5-to-v6.md)
 
 Runnable examples:
 

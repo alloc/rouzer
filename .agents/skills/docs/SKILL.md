@@ -35,8 +35,8 @@ Keep `docs/` split by concern:
 - `docs/streaming.md`: NDJSON response streams and cancellation
 - `docs/runtime.md`: Fetch handlers, host data, CORS, and background work
 - `docs/patterns.md`: preferred patterns, constraints, gotchas, and migrations
-- `docs/migration-v5.3-to-v5.4.md`: focused upgrade guide for the
-  Hattip-to-fetch server boundary change
+- `docs/migration-v5-to-v6.md`: focused upgrade guide for the
+  Hattip-compatible to fetch-compatible server boundary change
 
 ## Sources Of Truth
 

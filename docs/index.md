@@ -21,25 +21,25 @@ you can do and how the pieces fit together.
    success body.
 7. Read [Runtime and adapters](runtime.md) when mounting Rouzer in a server or
    test harness.
-8. Read [Migration from v5.3 to v5.4](migration-v5.3-to-v5.4.md) when upgrading
+8. Read [Migration from v5 to v6](migration-v5-to-v6.md) when upgrading
    from the Hattip-compatible server boundary.
 9. Read [Patterns, constraints, and migrations](patterns.md) for conventions,
    gotchas, and upgrade notes.
 
 ## Guide Map
 
-| Guide                                                    | Concern                                                                                                                                             |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Framework concepts](concepts.md)                        | The high-level model, request lifecycle, and Rouzer's framework responsibilities.                                                                   |
-| [Route contracts](routes.md)                             | `rouzer/http` resources, actions, Zod schemas, raw bodies, path patterns, and metadata.                                                             |
-| [Middleware and request context](middleware.md)          | `chain`, request plugins, `RequestContext`, `context.host`, env access, `waitUntil`, `onResponse`, `passThrough`, isolation, and runtime filtering. |
-| [Routers and handlers](handlers.md)                      | `createRouter`, route handler maps, validated handler context, CORS, debug mode, middleware ordering, and handler return values.                    |
-| [Typed client](client.md)                                | `createClient`, generated action functions, flat input objects, headers, custom fetch, `onJsonError`, and lifecycle hooks.                          |
-| [Responses, errors, and plugins](responses.md)           | `$type`, `$error`, response maps, status tuples, custom `Response` returns, and response plugin contracts.                                          |
-| [NDJSON streaming](streaming.md)                         | Streaming response markers, router/client plugin registration, cancellation, and stream error modeling.                                             |
-| [Runtime and adapters](runtime.md)                       | Root `toFetchHandler`, fetch-compatible mounting, custom host data, tests, CORS, and background work.                                               |
-| [Patterns, constraints, and migrations](patterns.md)     | Preferred project structure, common constraints, and migration notes from older Rouzer shapes.                                                      |
-| [Migration from v5.3 to v5.4](migration-v5.3-to-v5.4.md) | Hattip-to-fetch server mounting, type, test, host data, and runtime-filter updates.                                                                 |
+| Guide                                                | Concern                                                                                                                                             |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Framework concepts](concepts.md)                    | The high-level model, request lifecycle, and Rouzer's framework responsibilities.                                                                   |
+| [Route contracts](routes.md)                         | `rouzer/http` resources, actions, Zod schemas, raw bodies, path patterns, and metadata.                                                             |
+| [Middleware and request context](middleware.md)      | `chain`, request plugins, `RequestContext`, `context.host`, env access, `waitUntil`, `onResponse`, `passThrough`, isolation, and runtime filtering. |
+| [Routers and handlers](handlers.md)                  | `createRouter`, route handler maps, validated handler context, CORS, debug mode, middleware ordering, and handler return values.                    |
+| [Typed client](client.md)                            | `createClient`, generated action functions, flat input objects, headers, custom fetch, `onJsonError`, and lifecycle hooks.                          |
+| [Responses, errors, and plugins](responses.md)       | `$type`, `$error`, response maps, status tuples, custom `Response` returns, and response plugin contracts.                                          |
+| [NDJSON streaming](streaming.md)                     | Streaming response markers, router/client plugin registration, cancellation, and stream error modeling.                                             |
+| [Runtime and adapters](runtime.md)                   | Root `toFetchHandler`, fetch-compatible mounting, custom host data, tests, CORS, and background work.                                               |
+| [Patterns, constraints, and migrations](patterns.md) | Preferred project structure, common constraints, and migration notes from older Rouzer shapes.                                                      |
+| [Migration from v5 to v6](migration-v5-to-v6.md)     | Hattip-compatible to fetch-compatible server mounting, type, test, host data, and runtime-filter updates.                                           |
 
 ## Request Lifecycle
 

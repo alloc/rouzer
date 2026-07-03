@@ -1,6 +1,6 @@
-# Migrating from v5.3 to v5.4
+# Migrating from v5 to v6
 
-Rouzer v5.4 moves the server runtime boundary from Hattip-compatible handlers to
+Rouzer v6 moves the server runtime boundary from Hattip-compatible handlers to
 fetch-compatible Rouzer handlers. Route declarations, handler maps, generated
 clients, response maps, response plugins, raw bodies, and NDJSON routes keep the
 same Rouzer shape.
@@ -50,10 +50,10 @@ const fetch = toFetchHandler(router, {
 Rouzer no longer requires Hattip types in application code.
 
 ```ts
-// v5.3
+// v5
 import type { AdapterRequestContext, HattipHandler } from '@hattip/core'
 
-// v5.4
+// v6
 import type { RequestContext, RequestHandler } from 'rouzer'
 ```
 
@@ -67,7 +67,7 @@ If tests used `@hattip/adapter-test`, replace it with a small local fetch
 wrapper.
 
 ```ts
-// v5.3
+// v5
 import { createTestClient } from '@hattip/adapter-test'
 
 const client = createClient({
@@ -81,7 +81,7 @@ const client = createClient({
 ```
 
 ```ts
-// v5.4
+// v6
 import { createClient, toFetchHandler, type RequestHandler } from 'rouzer'
 
 function createLocalFetch(handler: RequestHandler): typeof fetch {
@@ -126,14 +126,14 @@ If code used the old platform filter helper from Rouzer's root exports, use
 `filterRuntime`.
 
 ```ts
-// v5.3
+// v5
 import { filterPlatform } from 'rouzer'
 
 const middleware = chain().use(filterPlatform('node'))
 ```
 
 ```ts
-// v5.4
+// v6
 import { filterRuntime } from 'rouzer'
 
 const middleware = chain().use(filterRuntime<{ name: 'node' }>('node'))
