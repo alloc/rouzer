@@ -1,7 +1,8 @@
 # Patterns, constraints, and migrations
 
 Use this page as a checklist when designing route modules, middleware, and
-client usage.
+client usage. For the current server-boundary upgrade, use
+[Migration from v5.3 to v5.4](migration-v5.3-to-v5.4.md).
 
 ## Preferred Patterns
 
