@@ -35,7 +35,6 @@ Keep `docs/` split by concern:
 - `docs/streaming.md`: NDJSON response streams and cancellation
 - `docs/runtime.md`: Fetch handlers, host data, CORS, and background work
 - `docs/patterns.md`: preferred patterns, constraints, gotchas, and migrations
-- `docs/context.md`: compatibility pointer for older links
 
 ## Sources Of Truth
 
@@ -96,8 +95,6 @@ API.
 - Link runnable examples when a topic already has one under `examples/`.
 - Avoid marketing copy. Explain behavior, boundaries, and tradeoffs directly.
 - Do not add new dependencies for documentation unless explicitly requested.
-- Keep `docs/context.md` as a compatibility map unless a task explicitly removes
-  old-link support.
 
 ## Review Checklist
 
