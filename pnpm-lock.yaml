@@ -25,8 +25,8 @@ importers:
         specifier: 7.0.0-dev.20260515.1
         version: 7.0.0-dev.20260515.1
       lildocs:
-        specifier: ^0.1.15
-        version: 0.1.15
+        specifier: ^0.1.16
+        version: 0.1.16(vite@8.0.13(@types/node@25.8.0)(esbuild@0.27.2))
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
@@ -219,20 +219,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@floating-ui/core@1.7.5':
-    resolution: {integrity: sha512-1Ih4WTWyw0+lKyFMcBHGbb5U5FtuHJuujoyyr5zTaWS5EYMeT6Jb2AuDeftsCsEuchO+mM2ij5+q9crhydzLhQ==}
-
-  '@floating-ui/dom@1.7.6':
-    resolution: {integrity: sha512-9gZSAI5XM36880PPMm//9dfiEngYoC6Am2izES1FF406YFsjvyBMmeJ2g4SAju3xWwtuynNRFL2s9hgxpLI5SQ==}
-
-  '@floating-ui/utils@0.2.11':
-    resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
-
-  '@goddard-ai/ui-primitives@0.1.2':
-    resolution: {integrity: sha512-sUq+DFy4BXjW6MNNkbOaUxo/I/LP1G8X7rzWConRV3Y+XjnT76v1+ajtn7xPFGTZRGMb4rRHKSst3bv8cEVJqA==}
-    peerDependencies:
-      preact: '>=10.0.0'
-
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
 
@@ -248,14 +234,6 @@ packages:
 
   '@oxc-project/types@0.130.0':
     resolution: {integrity: sha512-ibD2usx9JRu7f5pu2tMKMI4cpA4NgXJQoYRP4pQ7Pxmn1l6k/53qWtQWZayhYy3X4QZkt90Ot+mJEaeXouio6Q==}
-
-  '@preact/signals-core@1.14.3':
-    resolution: {integrity: sha512-m0K3vnbSLC5rHs2ZVfeAMvBtT1zIyq4mxx5OlNncSgMj5Iz6W5Rn3kPrDxAC+iIKmiVe0lSl6U37t5ZkEWoVAw==}
-
-  '@preact/signals@2.9.2':
-    resolution: {integrity: sha512-DvFPISNMSh3vPqRwPa1tAVAHl85aDq4pTyNu1bTGfrKr64F3EOCHjdUl9aUdohKBf1v9PRGLYuGFcJpfztkdoQ==}
-    peerDependencies:
-      preact: '>= 10.25.0 || >=11.0.0-0'
 
   '@remix-run/route-pattern@0.22.1':
     resolution: {integrity: sha512-czdGJWh09Lapvcqt7Vb09KlrU2PhRJ8xQaI+AItTuD9aDJ5MAgxnS38lnys6Ll+6RJEqPiaUqTwIQhVLwFvv+w==}
@@ -397,13 +375,8 @@ packages:
     peerDependencies:
       acorn: ^8.9.0
 
-  '@tsrx/core@0.1.28':
-    resolution: {integrity: sha512-AEfvjAg4D/sEEFQ3wGSTcZHuM25gs61MWwML9UtsUnxcTaYEqBLo/A6CNGOBi9tLU9mzAOJpPOAo3jj6uDE4Cw==}
-
-  '@tsrx/preact@0.1.28':
-    resolution: {integrity: sha512-n4pEkBpQWmCjZ75NMlxpSLlscYsU8RLRrX2gRFz98E5tWZnaeFb58MclGKMuK+WXzkjap9bsS6XOZUjFkocR0Q==}
-    peerDependencies:
-      preact: '>=10'
+  '@tsrx/core@0.1.33':
+    resolution: {integrity: sha512-Djl0nwqYGdZiJHnMJBeyKUs05nErtDuLf1JoYNRvMlo49/80jZAtkpHGyrM/cnNCdhGWeQIccmENv7mOQ7sYNw==}
 
   '@tybys/wasm-util@0.10.2':
     resolution: {integrity: sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg==}
@@ -583,6 +556,9 @@ packages:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
 
+  devalue@5.8.1:
+    resolution: {integrity: sha512-4CXDYRBGqN+57wVJkuXBYmpAVUSg3L6JAQa/DFqm238G73E1wuyc/JhGQJzN7vUf/CMphYau2zXbfWzDR5aTEw==}
+
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
 
@@ -595,6 +571,10 @@ packages:
   entities@7.0.1:
     resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
+
+  entities@8.0.0:
+    resolution: {integrity: sha512-zwfzJecQ/Uej6tusMqwAqU/6KL2XaB2VZ2Jg54Je6ahNBGNH6Ek6g3jjNCF0fG9EWQKGZNddNjU5F1ZQn/sBnA==}
+    engines: {node: '>=20.19.0'}
 
   es-module-lexer@2.1.0:
     resolution: {integrity: sha512-n27zTYMjYu1aj4MjCWzSP7G9r75utsaoc8m61weK+W8JMBGGQybd43GstCXZ3WNmSFtGT9wi59qQTW6mhTR5LQ==}
@@ -753,10 +733,12 @@ packages:
     resolution: {integrity: sha512-NXYBzinNrblfraPGyrbPoD19C1h9lfI/1mzgWYvXUTe414Gz/X1FD2XBZSZM7rRTrMA8JL3OtAaGifrIKhQ5yQ==}
     engines: {node: '>= 12.0.0'}
 
-  lildocs@0.1.15:
-    resolution: {integrity: sha512-i3/ud0qyZXqIRePVTnc97+hj9u9Hc/d5TA0TKwdzqBvcECu1Yox9CCKKpIaeJbzc6kkaZGJjE25R0w7mKfNaRw==}
+  lildocs@0.1.16:
+    resolution: {integrity: sha512-wmvDfQF7IaLN8i/mC+M1soSaf4zgdMae+hzlikU8HfhU22MxR/FlA0FyVH2BmxOSqEo3SqsWM0+3V0e2hY8JNQ==}
     engines: {node: ^22.18.0 || >=24.3.0}
     hasBin: true
+    peerDependencies:
+      vite: ^8.0.0
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -804,6 +786,9 @@ packages:
   obug@2.1.1:
     resolution: {integrity: sha512-uTqF9MuPraAQ+IsnPf366RG4cP9RtUi7MLO1N3KEc+wb0a6yKpeL0lmk2IB1jY5KHPAlTc6T/JRdC/YqxHNwkQ==}
 
+  octane@0.1.3:
+    resolution: {integrity: sha512-ULBKb6k+VeF6U4mq6q/LuSGHQ/wvybThVx8GIxOHTI6f1A7SXC7xQi4wOl7LAwJoov9VgxL6Q8ksG/619lWheQ==}
+
   oniguruma-parser@0.12.2:
     resolution: {integrity: sha512-6HVa5oIrgMC6aA6WF6XyyqbhRPJrKR02L20+2+zpDtO5QAzGHAUGw5TKQvwi5vctNnRHkJYmjAhRVQF2EKdTQw==}
 
@@ -829,14 +814,6 @@ packages:
   postcss@8.5.14:
     resolution: {integrity: sha512-SoSL4+OSEtR99LHFZQiJLkT59C5B1amGO1NzTwj7TT1qCUgUO6hxOvzkOYxD+vMrXBM3XJIKzokoERdqQq/Zmg==}
     engines: {node: ^10 || ^12 || >=14}
-
-  preact-render-to-string@6.7.0:
-    resolution: {integrity: sha512-Z4WR8fmLMRpdYqJ9i7vrlXSsSrxVJydwrkEXHapexfARbWfGb7vGcnvNQnIzN0cXciMVOlz/XLoiMCi9gUsy9Q==}
-    peerDependencies:
-      preact: '>=10 || >= 11.0.0-0'
-
-  preact@10.29.3:
-    resolution: {integrity: sha512-D9NL1GAnJZhc3RndVs4gDdxEeU9TcHgywMrhhOsnpdlvFjdbx0gAsLUnH6JEhlJH5giL7Tx5biWPUSEXE/HPzw==}
 
   prettier@3.8.3:
     resolution: {integrity: sha512-7igPTM53cGHMW8xWuVTydi2KO233VFiTNyF5hLJqpilHfmn8C8gPf+PS7dUT64YcXFbiMGZxS9pCSxL/Dxm/Jw==}
@@ -900,9 +877,6 @@ packages:
 
   swup@4.9.2:
     resolution: {integrity: sha512-AKpBpgsc+MGllKWDGidzPoKxpkE338FnMjCetqynx+gQPA2Jd7QqcwlHxd82USB9RQsn9LbXhwsME6b/WlQRng==}
-
-  tabbable@6.5.0:
-    resolution: {integrity: sha512-wieBHXygIm7OyQOu5hQlkk62/WyCFYGlWg7L6/ZCUZwx0o398Zkn4pVmMyfYhfMG8kGrj/Krt8eIk6UKC6VzwA==}
 
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
@@ -1168,27 +1142,6 @@ snapshots:
   '@esbuild/win32-x64@0.27.2':
     optional: true
 
-  '@floating-ui/core@1.7.5':
-    dependencies:
-      '@floating-ui/utils': 0.2.11
-
-  '@floating-ui/dom@1.7.6':
-    dependencies:
-      '@floating-ui/core': 1.7.5
-      '@floating-ui/utils': 0.2.11
-
-  '@floating-ui/utils@0.2.11': {}
-
-  '@goddard-ai/ui-primitives@0.1.2(preact@10.29.3)':
-    dependencies:
-      '@floating-ui/dom': 1.7.6
-      '@preact/signals': 2.9.2(preact@10.29.3)
-      '@tsrx/preact': 0.1.28(preact@10.29.3)
-      preact: 10.29.3
-      tabbable: 6.5.0
-    transitivePeerDependencies:
-      - '@typescript-eslint/types'
-
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
   '@napi-rs/wasm-runtime@1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
@@ -1201,13 +1154,6 @@ snapshots:
   '@noble/hashes@2.2.0': {}
 
   '@oxc-project/types@0.130.0': {}
-
-  '@preact/signals-core@1.14.3': {}
-
-  '@preact/signals@2.9.2(preact@10.29.3)':
-    dependencies:
-      '@preact/signals-core': 1.14.3
-      preact: 10.29.3
 
   '@remix-run/route-pattern@0.22.1': {}
 
@@ -1308,7 +1254,7 @@ snapshots:
     dependencies:
       acorn: 8.17.0
 
-  '@tsrx/core@0.1.28':
+  '@tsrx/core@0.1.33':
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
       '@noble/hashes': 2.2.0
@@ -1319,15 +1265,6 @@ snapshots:
       esrap: 2.2.13
       is-reference: 3.0.3
       magic-string: 0.30.21
-      zimmerframe: 1.1.4
-    transitivePeerDependencies:
-      - '@typescript-eslint/types'
-
-  '@tsrx/preact@0.1.28(preact@10.29.3)':
-    dependencies:
-      '@tsrx/core': 0.1.28
-      esrap: 2.2.13
-      preact: 10.29.3
       zimmerframe: 1.1.4
     transitivePeerDependencies:
       - '@typescript-eslint/types'
@@ -1494,6 +1431,8 @@ snapshots:
 
   detect-libc@2.1.2: {}
 
+  devalue@5.8.1: {}
+
   devlop@1.1.0:
     dependencies:
       dequal: 2.0.3
@@ -1503,6 +1442,8 @@ snapshots:
   elkjs@0.11.1: {}
 
   entities@7.0.1: {}
+
+  entities@8.0.0: {}
 
   es-module-lexer@2.1.0: {}
 
@@ -1656,21 +1597,20 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.32.0
       lightningcss-win32-x64-msvc: 1.32.0
 
-  lildocs@0.1.15:
+  lildocs@0.1.16(vite@8.0.13(@types/node@25.8.0)(esbuild@0.27.2)):
     dependencies:
-      '@goddard-ai/ui-primitives': 0.1.2(preact@10.29.3)
-      '@preact/signals': 2.9.2(preact@10.29.3)
       beautiful-mermaid: 1.1.3
       cmd-ts: 0.15.0
       culori: 4.0.2
+      entities: 8.0.0
       exports-md: 0.2.6
       gray-matter: 4.0.3
       marked: 18.0.5
       marked-shiki: 1.2.1(marked@18.0.5)(shiki@4.3.0)
-      preact: 10.29.3
-      preact-render-to-string: 6.7.0(preact@10.29.3)
+      octane: 0.1.3
       shiki: 4.3.0
       swup: 4.9.2
+      vite: 8.0.13(@types/node@25.8.0)(esbuild@0.27.2)
     transitivePeerDependencies:
       - '@typescript-eslint/types'
       - supports-color
@@ -1723,6 +1663,14 @@ snapshots:
 
   obug@2.1.1: {}
 
+  octane@0.1.3:
+    dependencies:
+      '@tsrx/core': 0.1.33
+      devalue: 5.8.1
+      esrap: 2.2.13
+    transitivePeerDependencies:
+      - '@typescript-eslint/types'
+
   oniguruma-parser@0.12.2: {}
 
   oniguruma-to-es@4.3.6:
@@ -1746,12 +1694,6 @@ snapshots:
       nanoid: 3.3.12
       picocolors: 1.1.1
       source-map-js: 1.2.1
-
-  preact-render-to-string@6.7.0(preact@10.29.3):
-    dependencies:
-      preact: 10.29.3
-
-  preact@10.29.3: {}
 
   prettier@3.8.3: {}
 
@@ -1831,8 +1773,6 @@ snapshots:
     dependencies:
       delegate-it: 6.4.0
       path-to-regexp: 6.3.0
-
-  tabbable@6.5.0: {}
 
   tinybench@2.9.0: {}
 

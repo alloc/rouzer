@@ -6,5 +6,6 @@ minimumReleaseAgeExclude:
   - alien-middleware
   - exports-md
   - lildocs
+  - octane
 allowBuilds:
   esbuild: true
