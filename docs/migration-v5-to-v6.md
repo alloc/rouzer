@@ -1,12 +1,17 @@
 # Migrating from v5 to v6
 
+> Move a v5 application from Hattip-compatible server integration to Rouzer's
+> Fetch-compatible handler boundary without rewriting its route contract.
+
 Rouzer v6 moves the server runtime boundary from Hattip-compatible handlers to
 fetch-compatible Rouzer handlers. Route declarations, handler maps, generated
 clients, response maps, response plugins, raw bodies, and NDJSON routes keep the
 same Rouzer shape.
 
-Most applications only need to update server mounting code, tests, and any
-explicit Hattip handler/context types.
+> [!IMPORTANT]
+> Most applications only need to update server mounting code, tests, and any
+> explicit Hattip handler or context types. Keep the shared route tree unchanged
+> unless the application API is changing too.
 
 ## Replace Hattip adapters with Fetch handlers
 

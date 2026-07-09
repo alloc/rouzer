@@ -1,5 +1,8 @@
 # Middleware and request context
 
+> Put cross-cutting request behavior in an ordered chain and expose only the
+> typed context values that downstream middleware and handlers need.
+
 Rouzer includes request context and middleware composition in its root API, so
 most applications can import route, middleware, and adapter helpers from one
 package.
@@ -119,13 +122,15 @@ const router = createRouter()
   })
 ```
 
-The `env` key is reserved for environment bindings. Values are accessed through
-`ctx.env(name)`, not as `ctx.env.DATABASE_URL`.
+> [!IMPORTANT]
+> The `env` key is reserved for environment bindings. Read its values through
+> `ctx.env(name)`, not as `ctx.env.DATABASE_URL`.
 
 ## Runtime Type Markers
 
-The `runtime` request plugin key is reserved as a type-level marker for
-`ctx.host.runtime`; it does not add `ctx.runtime`.
+> [!IMPORTANT]
+> The `runtime` request plugin key is a type-level marker for
+> `ctx.host.runtime`; it does not add `ctx.runtime`.
 
 ```ts
 const nodeOnly = chain()
@@ -176,10 +181,11 @@ inside the isolated chain.
 
 ## Pass Through
 
-`ctx.passThrough()` is chain-local control flow. In a nested or isolated chain,
-it skips the rest of that chain and lets the parent chain continue. In a final
-fetch handler, an unresolved request becomes the default `404 Not Found`
-response.
+> [!NOTE]
+> `ctx.passThrough()` is chain-local control flow, not an adapter pass-through.
+> In a nested or isolated chain, it skips the rest of that chain and lets the
+> parent chain continue. In a final fetch handler, an unresolved request becomes
+> the default `404 Not Found` response.
 
 Use `passThrough` for optional middleware branches or runtime filters. Use a
 `Response` when you want to deliberately stop the request.

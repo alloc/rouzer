@@ -1,5 +1,8 @@
 # NDJSON streaming
 
+> Stream a sequence of JSON values through a typed route while preserving
+> incremental delivery, cancellation, and explicit error modeling.
+
 Rouzer includes a response plugin for newline-delimited JSON response streams.
 Use it when a route should send a sequence of JSON values without buffering the
 whole response.
@@ -45,10 +48,11 @@ resolves to an `AsyncIterable<T>`.
 
 ## Plugin Registration
 
-Register both sides when a route tree contains `ndjson.$type<T>()`:
+> [!IMPORTANT]
+> Register both sides when a route tree contains `ndjson.$type<T>()`:
 
-- `ndjson.routerPlugin` in `createRouter({ plugins })`
-- `ndjson.clientPlugin` in `createClient({ plugins })`
+> - `ndjson.routerPlugin` in `createRouter({ plugins })`
+> - `ndjson.clientPlugin` in `createClient({ plugins })`
 
 Rouzer fails fast if a route uses a response plugin marker and the matching
 plugin is not registered.
@@ -89,8 +93,10 @@ adds a newline. The response content type defaults to
 and parses each line with `JSON.parse`. A final line does not need a trailing
 newline. Malformed JSON throws a `SyntaxError` with the line number.
 
-Streamed items are not validated against a Zod schema. If item validation is
-needed, validate before yielding on the server or while consuming on the client.
+> [!NOTE]
+> Streamed items are not validated against a Zod schema. If item validation is
+> needed, validate before yielding on the server or while consuming on the
+> client.
 
 ## Cancellation
 
@@ -98,8 +104,9 @@ If a client aborts the request signal or stops iteration early by breaking from
 `for await` or calling the iterator's `return()`, Rouzer cancels the response
 body and calls the server source iterator's `return()`.
 
-Sources that wait for future events should make those waits abort-aware when
-cleanup needs to run while an awaited operation is still pending.
+> [!TIP]
+> Make waits for future events abort-aware when cleanup must run while an
+> awaited operation is still pending.
 
 ```ts
 async function readFirst<T>(source: AsyncIterable<T>) {
@@ -114,9 +121,10 @@ async function readFirst<T>(source: AsyncIterable<T>) {
 
 ## Stream Errors
 
-Rouzer does not convert handler or generator failures into extra NDJSON items.
-If an async generator throws after the response starts, the response stream
-errors and the client's `for await` loop throws.
+> [!NOTE]
+> Rouzer does not convert handler or generator failures into extra NDJSON items.
+> If an async generator throws after the response starts, the response stream
+> errors and the client's `for await` loop throws.
 
 Model application-level stream errors as part of your item type when clients
 should receive them as data.
@@ -127,5 +135,5 @@ type StreamItem =
   | { type: 'error'; message: string }
 ```
 
-The complete runnable version is
-[examples/ndjson-stream.ts](../examples/ndjson-stream.ts).
+The [complete runnable NDJSON example](https://github.com/alloc/rouzer/blob/main/examples/ndjson-stream.ts)
+includes the shared route, router, client, and stream consumption loop.

@@ -1,5 +1,8 @@
 # Runtime and adapters
 
+> Adapt a Rouzer request handler to a Fetch runtime while keeping host-specific
+> data behind the request context boundary.
+
 Rouzer routers are request handlers. Use adapter helpers to turn them into
 functions accepted by your HTTP server, framework, or tests.
 
@@ -116,8 +119,9 @@ For allowed non-preflight requests, Rouzer sets
 `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods`, and
 `Access-Control-Allow-Headers`.
 
-Rouzer does not set `Access-Control-Allow-Credentials`; set it yourself when
-credentialed requests need it.
+> [!WARNING]
+> Rouzer does not set `Access-Control-Allow-Credentials`. Set it yourself before
+> relying on credentialed cross-origin requests.
 
 ## Background Work
 
@@ -134,3 +138,8 @@ ctx.waitUntil(
 ```
 
 The adapter delegates to `host.waitUntil` when you provide it.
+
+> [!NOTE]
+> Without `host.waitUntil`, the request context has no runtime-specific lifetime
+> extension to delegate to. Provide it when background work must outlive the
+> response.

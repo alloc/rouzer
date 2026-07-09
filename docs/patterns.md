@@ -1,8 +1,15 @@
 # Patterns, constraints, and migrations
 
+> Review the stable project patterns and sharp edges that matter when route
+> contracts, middleware, handlers, and clients are composed in one application.
+
 Use this page as a checklist when designing route modules, middleware, and
-client usage. For the current server-boundary upgrade, use
-[Migration from v5 to v6](migration-v5-to-v6.md).
+client usage.
+
+> [!IMPORTANT]
+> For the v5 server-boundary upgrade, follow
+> [Migration from v5 to v6](migration-v5-to-v6.md) instead of treating this
+> checklist as a migration procedure.
 
 ## Preferred Patterns
 
@@ -84,8 +91,9 @@ src/
 contracts and attaches handlers. `client/api.ts` imports the same contracts and
 creates the typed client.
 
-Keep route modules free of server-only dependencies when browser clients import
-them.
+> [!IMPORTANT]
+> Keep shared route modules free of server-only dependencies when browser
+> clients import them.
 
 ## v2 To v3 Route Shape
 

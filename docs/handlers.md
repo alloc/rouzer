@@ -1,5 +1,8 @@
 # Routers and handlers
 
+> Attach a shared route tree to its handler map, then order middleware so every
+> handler receives the validated request context it expects.
+
 `createRouter()` returns a fetch-compatible Rouzer handler with chain methods.
 Use it to compose middleware and attach route trees.
 
@@ -97,9 +100,10 @@ For a matched route, Rouzer validates before the handler runs:
 3. query string, for `GET` actions with a `query` schema
 4. JSON body, for mutation actions with a non-raw `body` schema
 
-If validation fails, Rouzer returns a `400` JSON response and does not call the
-handler. In `debug` mode, validation responses include more specific Zod error
-messages.
+> [!NOTE]
+> If validation fails, Rouzer returns a `400` JSON response and does not call
+> the handler. In `debug` mode, validation responses include more specific Zod
+> error messages.
 
 If no `path` schema is declared, `ctx.path` is inferred from the route pattern
 and contains string params.
@@ -183,8 +187,9 @@ When an allowed request includes an `Origin` header, Rouzer sets
 returns `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods`, and
 `Access-Control-Allow-Headers`.
 
-Rouzer does not automatically set `Access-Control-Allow-Credentials`. Set that
-header yourself when credentialed cross-origin requests need it.
+> [!WARNING]
+> Rouzer does not set `Access-Control-Allow-Credentials`. Set that header
+> yourself before relying on credentialed cross-origin requests.
 
 ## Middleware Ordering
 

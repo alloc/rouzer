@@ -1,7 +1,14 @@
 # Responses, errors, and plugins
 
+> Choose whether callers receive typed JSON, a raw Web `Response`, a declared
+> status tuple, or a plugin-decoded value.
+
 Rouzer response schemas shape handler return types and generated client result
-types. They do not automatically validate handler return values at runtime.
+types.
+
+> [!IMPORTANT]
+> Response markers do not validate handler return values at runtime. They are
+> TypeScript contracts between handlers and generated clients.
 
 ## Plain JSON Success
 
@@ -161,9 +168,10 @@ createClient({
 })
 ```
 
-Rouzer validates plugin registration when routes are attached to a router or
-client. Routes that use an unregistered response marker fail fast instead of
-falling back to JSON.
+> [!IMPORTANT]
+> Register the matching response plugin on both the router and client. Rouzer
+> fails fast when attaching routes with an unregistered marker instead of
+> falling back to JSON.
 
 Plugin markers can be used directly as an action response or as success entries
 in a response map. `$error<T>()` entries are JSON error responses.

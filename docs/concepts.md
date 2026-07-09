@@ -1,9 +1,12 @@
 # Framework concepts
 
+> Use the route tree as the shared contract, then decide which behavior belongs
+> in routes, handlers, clients, or middleware.
+
 Rouzer is for applications that can share a TypeScript HTTP contract between
 server and client code. The central object is an HTTP route tree. That tree
 describes URL paths, action names, request schemas, and response contracts once,
-then it is reused by the router and generated client.
+then the router and generated client reuse it.
 
 Rouzer is not an OpenAPI generator, a response validator, or a full application
 framework. It focuses on shared route contracts, request validation, typed
@@ -67,9 +70,11 @@ Zod number and boolean schemas in those locations, including nested object and
 array schemas. JSON request bodies are parsed from the request body and then
 validated as JSON values.
 
-Rouzer does not validate handler return values just because a route uses
-`$type<T>()`, `$error<T>()`, or `ndjson.$type<T>()`. Those markers are TypeScript
-contracts. Validate untrusted response data where it enters your system.
+> [!IMPORTANT]
+> Rouzer does not validate handler return values just because a route uses
+> `$type<T>()`, `$error<T>()`, or `ndjson.$type<T>()`. Those markers are
+> TypeScript contracts. Validate untrusted response data where it enters your
+> system.
 
 ## Lifecycle
 

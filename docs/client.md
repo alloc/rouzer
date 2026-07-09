@@ -1,5 +1,8 @@
 # Typed client
 
+> Turn the shared route tree into action functions with validated input,
+> per-request Fetch options, and response types that match each route contract.
+
 `createClient({ baseURL, routes })` creates a typed fetch client from the same
 route tree used by the server.
 
@@ -70,9 +73,12 @@ await client.updateProfile({
 })
 ```
 
-Per-request `RequestInit` options are the second argument. Rouzer reserves
-`method` and owns JSON body encoding. Headers are typed from the route header
-schema when one exists.
+Per-request `RequestInit` options are the second argument. Headers are typed from
+the route header schema when one exists.
+
+> [!IMPORTANT]
+> Rouzer reserves `method` and owns JSON body encoding. Do not override either
+> through per-request options.
 
 ```ts
 await client.profiles.get(
@@ -84,9 +90,10 @@ await client.profiles.get(
 )
 ```
 
-Avoid duplicate keys across path, query, and JSON body schemas. The flat client
-input cannot distinguish duplicate field names from different request
-locations.
+> [!IMPORTANT]
+> Keep keys unique across path, query, and JSON body schemas. The flat client
+> input cannot distinguish duplicate field names from different request
+> locations.
 
 ## Raw Body Routes
 
@@ -99,6 +106,10 @@ await client.uploadAvatar(
   { body: file, headers: { 'content-type': file.type } }
 )
 ```
+
+> [!NOTE]
+> Raw-body argument placement changes when the route has no path or query input:
+> pass the body as the first argument instead of `options.body`.
 
 For raw-body routes without route input, pass the body as the first argument.
 
@@ -178,9 +189,10 @@ also include `status`.
 Hook errors are swallowed. Lifecycle hooks are observability-only and must not
 change request behavior.
 
-For streaming response plugins, `request.success` is emitted when the generated
-action resolves to the stream object. Errors that happen while consuming the
-stream are outside the first lifecycle hook surface.
+> [!NOTE]
+> For streaming response plugins, `request.success` is emitted when the action
+> resolves to the stream object. Errors that happen while consuming the stream
+> are outside the client hook lifecycle.
 
 ## Testing With Local Fetch
 

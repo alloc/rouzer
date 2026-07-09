@@ -1,0 +1,18 @@
+{
+  "projectName": "Rouzer",
+  "navigation": {
+    "order": [
+      "index.md",
+      "concepts.md",
+      "routes.md",
+      "middleware.md",
+      "handlers.md",
+      "client.md",
+      "responses.md",
+      "streaming.md",
+      "runtime.md",
+      "patterns.md",
+      "migration-v5-to-v6.md"
+    ]
+  }
+}

@@ -1,5 +1,8 @@
 # Route contracts
 
+> Define each HTTP operation once so its URL, validated input, handler type, and
+> generated client call stay aligned.
+
 Declare route contracts with the `rouzer/http` subpath. A route contract is the
 shared source of truth for server handler types, client action types, URL
 construction, and request validation.
@@ -127,8 +130,11 @@ export const updateProfile = http.patch('profiles/:id', {
 ```
 
 On the client, path, query, and JSON body fields are flattened into the first
-action argument. Avoid duplicate field names across those schemas because a flat
-object cannot represent separate values for the same key.
+action argument.
+
+> [!IMPORTANT]
+> Keep field names unique across path, query, and JSON body schemas. A flat
+> client input cannot represent separate values for the same key.
 
 ```ts
 await client.updateProfile({
@@ -156,6 +162,11 @@ await client.uploadAvatar(
   { body: file, headers: { 'content-type': file.type } }
 )
 ```
+
+> [!NOTE]
+> Raw-body argument placement depends on route input. With path or query input,
+> pass the body as `options.body`; without route input, pass the body as the
+> first argument.
 
 For a raw-body route without path or query input, the generated client accepts
 the body as the first argument.

@@ -1,9 +1,11 @@
 # Rouzer documentation
 
+> Choose the guide that matches your next Rouzer decision, from defining a
+> shared route contract to mounting the completed router in a Fetch runtime.
+
 Rouzer combines a shared TypeScript route tree, a fetch-compatible server
-router, a typed fetch client, and request context composition. These guides are
-organized by concern so the docs directory is the complete entry point for what
-you can do and how the pieces fit together.
+router, a typed fetch client, and request context composition. The guides keep
+those concerns separate while showing where they meet.
 
 ## Learning Path
 
@@ -21,10 +23,13 @@ you can do and how the pieces fit together.
    success body.
 7. Read [Runtime and adapters](runtime.md) when mounting Rouzer in a server or
    test harness.
-8. Read [Migration from v5 to v6](migration-v5-to-v6.md) when upgrading
-   from the Hattip-compatible server boundary.
-9. Read [Patterns, constraints, and migrations](patterns.md) for conventions,
-   gotchas, and upgrade notes.
+8. Read [Patterns, constraints, and migrations](patterns.md) before settling on
+   a project structure or reviewing an integration.
+
+> [!IMPORTANT]
+> Upgrading an existing v5 application is a different path. Start with
+> [Migration from v5 to v6](migration-v5-to-v6.md), then return to the focused
+> guides when a changed boundary needs more detail.
 
 ## Guide Map
 
@@ -43,20 +48,40 @@ you can do and how the pieces fit together.
 
 ## Request Lifecycle
 
-1. A shared route module exports resources and actions.
-2. Server code creates a router, appends middleware, and attaches the route tree
-   with a handler map.
-3. Runtime code mounts the router with `toFetchHandler` or an adapter-specific
-   helper.
-4. Client code creates a generated client from the same route tree.
-5. A client action validates route input, builds a `fetch` request, and sends
-   it.
-6. The router matches the request, validates path/query/body/header data, and
-   calls the typed handler.
-7. The handler returns JSON data, a custom `Response`, a declared response-map
-   helper, or a response-plugin value such as an NDJSON source.
-8. Response callbacks registered by middleware can finalize headers or replace
-   the response before it leaves the chain.
+The route tree is the shared contract. The client uses it to construct the
+request, and the router uses it to validate and dispatch that request.
+
+```mermaid
+flowchart TD
+  routes["Shared route tree"]
+  client["Generated client"]
+  router["Router and handler map"]
+  request["Validated fetch request"]
+  middleware["Middleware chain"]
+  handler["Typed route handler"]
+  response["JSON, Response, response map, or plugin value"]
+  finalize["Response callbacks"]
+
+  routes --> client
+  routes --> router
+  client -->|"validate input and fetch"| request
+  request --> middleware
+  middleware --> router
+  router -->|"match and validate"| handler
+  handler --> response
+  response --> finalize
+```
+
+After response callbacks finish, the Fetch-compatible handler returns the final
+Web `Response` to the runtime.
+
+## Runnable Examples
+
+| Example                                                                                               | Shows                                                         |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [Shared route, router, and client](https://github.com/alloc/rouzer/blob/main/examples/basic-usage.ts) | A complete JSON route from declaration through a client call. |
+| [Declared status responses](https://github.com/alloc/rouzer/blob/main/examples/error-responses.ts)    | Typed success and error tuples from a response map.           |
+| [NDJSON response stream](https://github.com/alloc/rouzer/blob/main/examples/ndjson-stream.ts)         | Plugin registration, streaming, and incremental consumption.  |
 
 ## Framework Surface
 
