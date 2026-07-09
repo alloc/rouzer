@@ -4,5 +4,7 @@ minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   - '@remix-run/route-pattern'
   - alien-middleware
+  - exports-md
+  - lildocs
 allowBuilds:
   esbuild: true
