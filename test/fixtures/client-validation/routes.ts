@@ -7,6 +7,17 @@ export const queryRoute = http.get('query', {
   }),
 })
 
+export const transformedQueryRoute = http.get('transformed-query', {
+  query: z.object({
+    keys: z
+      .string()
+      .trim()
+      .min(1)
+      .transform(value => value.split(','))
+      .pipe(z.array(z.string().min(1)).min(1)),
+  }),
+})
+
 export const bodyRoute = http.post('body', {
   body: z.object({
     count: z.number().check(z.int(), z.positive()),

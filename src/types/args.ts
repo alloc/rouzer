@@ -16,7 +16,7 @@ type PathInput<T, P extends string> = T extends { path: infer TPath }
   : MatchParams<P>
 
 type QueryInput<T> = T extends QueryRouteSchema & { query: infer TQuery }
-  ? z.infer<TQuery>
+  ? z.input<TQuery>
   : unknown
 
 type BodyInput<T> = T extends MutationRouteSchema

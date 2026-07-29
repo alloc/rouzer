@@ -32,6 +32,15 @@ export default {
     await expect(queryClient.config()).resolves.toBeInstanceOf(Response)
     fetch.mockClear()
 
+    await expect(
+      queryClient.transformedQueryRoute({ keys: 'one,two' })
+    ).resolves.toBeInstanceOf(Response)
+    expect(fetch).toHaveBeenCalledWith(
+      new URL('http://test.local/transformed-query?keys=one%2Ctwo'),
+      expect.any(Object)
+    )
+    fetch.mockClear()
+
     const bodyClient = createClient({
       baseURL: 'http://test.local',
       routes,
