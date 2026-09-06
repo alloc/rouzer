@@ -11,7 +11,8 @@
     "paths": {
       "rouzer": ["src/index.ts"],
       "rouzer/http": ["src/http.ts"],
-      "rouzer/ndjson": ["src/ndjson.ts"]
+      "rouzer/ndjson": ["src/ndjson.ts"],
+      "rouzer/openapi": ["src/openapi.ts"]
     },
     "types": []
   },

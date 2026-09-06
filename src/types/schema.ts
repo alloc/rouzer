@@ -15,6 +15,7 @@ export type { ResponsePluginMarker, Unchecked, UncheckedError }
 export type RouteResponseMarker =
   | Unchecked<any>
   | UncheckedError<any>
+  | z.ZodType
   | ResponsePluginMarker<any, any>
 
 /**
@@ -31,6 +32,7 @@ export type RouteResponseMap = {
 /** Response marker accepted by HTTP action schemas. */
 export type RouteResponseSchema =
   | Unchecked<any>
+  | z.ZodType
   | ResponsePluginMarker<any, any>
   | RouteResponseMap
 
@@ -44,7 +46,7 @@ export type QueryRouteSchema = {
   body?: never
   /** Optional Zod object used to validate request headers. */
   headers?: z.ZodObject<any>
-  /** Optional compile-time-only JSON or plugin response type marker. */
+  /** Optional Zod schema, compile-time JSON marker, plugin marker, or status map. */
   response?: RouteResponseSchema
 }
 
@@ -63,7 +65,7 @@ export type MutationRouteSchema = {
   body?: z.ZodObject<any> | RawBodySchema
   /** Optional Zod object used to validate request headers. */
   headers?: z.ZodObject<any>
-  /** Optional compile-time-only JSON or plugin response type marker. */
+  /** Optional Zod schema, compile-time JSON marker, plugin marker, or status map. */
   response?: RouteResponseSchema
 }
 

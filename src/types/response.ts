@@ -1,6 +1,13 @@
 import type { Unchecked, UncheckedError } from '../common.js'
 import type { ResponsePluginMarker } from '../response.js'
 import type { RouteResponseMap, RouteSchema } from './schema.js'
+import type * as z from 'zod'
+
+type IsErrorStatus<T extends number> = `${T}` extends
+  | `4${string}`
+  | `5${string}`
+  ? true
+  : false
 
 /** `Response` whose `.json()` method resolves to a known payload type. */
 export type RouteResponse<TResult = any> = Response & {
@@ -14,15 +21,21 @@ export type RouteResponse<TResult = any> = Response & {
  * Each entry becomes:
  * - `$type<T>()` → `[null, T, Status]`
  * - `$error<T>()` → `[T, null, Status]`
+ * - Zod schema below 400 → `[null, output, Status]`
+ * - Zod schema from 400 through 599 → `[output, null, Status]`
  */
 type InferResponseMapClient<T extends RouteResponseMap> = {
   [K in keyof T & number]: T[K] extends UncheckedError<infer TError>
     ? [TError, null, K]
-    : T[K] extends Unchecked<infer TSuccess>
-      ? [null, TSuccess, K]
-      : T[K] extends ResponsePluginMarker<infer TClient, any>
-        ? [null, TClient, K]
-        : never
+    : T[K] extends z.ZodType<infer TOutput>
+      ? IsErrorStatus<K> extends true
+        ? [TOutput, null, K]
+        : [null, TOutput, K]
+      : T[K] extends Unchecked<infer TSuccess>
+        ? [null, TSuccess, K]
+        : T[K] extends ResponsePluginMarker<infer TClient, any>
+          ? [null, TClient, K]
+          : never
 }[keyof T & number]
 
 /**
@@ -40,9 +53,11 @@ export type InferRouteResponse<T extends RouteSchema> = T extends {
     ? TClient
     : R extends Unchecked<infer TResponse>
       ? TResponse
-      : R extends RouteResponseMap
-        ? InferResponseMapClient<R>
-        : void
+      : R extends z.ZodType<infer TResponse>
+        ? TResponse
+        : R extends RouteResponseMap
+          ? InferResponseMapClient<R>
+          : void
   : void
 
 /**
@@ -52,9 +67,13 @@ export type InferRouteResponse<T extends RouteSchema> = T extends {
 type InferResponseMapHandlerResult<T extends RouteResponseMap> = {
   [K in keyof T & number]: T[K] extends Unchecked<infer TSuccess>
     ? TSuccess
-    : T[K] extends ResponsePluginMarker<any, infer TRouter>
-      ? TRouter
-      : never
+    : T[K] extends z.ZodType<infer TOutput>
+      ? IsErrorStatus<K> extends true
+        ? never
+        : TOutput
+      : T[K] extends ResponsePluginMarker<any, infer TRouter>
+        ? TRouter
+        : never
 }[keyof T & number]
 
 /**
@@ -70,9 +89,11 @@ export type InferRouteHandlerResult<T extends RouteSchema> = T extends {
     ? TRouter
     : R extends Unchecked<infer TResponse>
       ? TResponse
-      : R extends RouteResponseMap
-        ? InferResponseMapHandlerResult<R>
-        : void
+      : R extends z.ZodType<infer TResponse>
+        ? TResponse
+        : R extends RouteResponseMap
+          ? InferResponseMapHandlerResult<R>
+          : void
   : void
 
 /**
@@ -82,14 +103,22 @@ export type InferRouteHandlerResult<T extends RouteSchema> = T extends {
 export type InferResponseMapErrors<T extends RouteResponseMap> = {
   [K in keyof T & number]: T[K] extends UncheckedError<infer TError>
     ? [K, TError]
-    : never
+    : T[K] extends z.ZodType<infer TError>
+      ? IsErrorStatus<K> extends true
+        ? [K, TError]
+        : never
+      : never
 }[keyof T & number]
 
 /** Extract success entries as a union of `[status, body]` pairs. */
 export type InferResponseMapSuccesses<T extends RouteResponseMap> = {
   [K in keyof T & number]: T[K] extends Unchecked<infer TSuccess>
     ? [K, TSuccess]
-    : T[K] extends ResponsePluginMarker<any, infer TRouter>
-      ? [K, TRouter]
-      : never
+    : T[K] extends z.ZodType<infer TSuccess>
+      ? IsErrorStatus<K> extends true
+        ? never
+        : [K, TSuccess]
+      : T[K] extends ResponsePluginMarker<any, infer TRouter>
+        ? [K, TRouter]
+        : never
 }[keyof T & number]

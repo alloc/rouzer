@@ -3,12 +3,14 @@
 > Choose whether callers receive typed JSON, a raw Web `Response`, a declared
 > status tuple, or a plugin-decoded value.
 
-Rouzer response schemas shape handler return types and generated client result
-types.
+Rouzer response declarations shape handler return types and generated client
+result types. A Zod response schema also validates JSON at the router and client
+boundaries.
 
 > [!IMPORTANT]
-> Response markers do not validate handler return values at runtime. They are
-> TypeScript contracts between handlers and generated clients.
+> `$type<T>()` and `$error<T>()` do not validate handler return values at
+> runtime. Use Zod response schemas when the contract needs runtime validation
+> or OpenAPI export.
 
 ## Plain JSON Success
 
@@ -34,6 +36,16 @@ const profile = await client.getProfile({ id: '42' })
 
 Handlers may return a plain JSON-serializable value or a custom `Response`.
 Plain values are sent with `Response.json(value)`.
+
+Use a Zod schema directly for a runtime-validated JSON response:
+
+```ts
+const Profile = z.object({ id: z.string(), name: z.string() })
+
+export const getProfile = http.get('profiles/:id', {
+  response: Profile,
+})
+```
 
 ## Raw Response
 
@@ -105,6 +117,22 @@ if (status === 404) {
 
 Declared error statuses do not reject the client promise. Undeclared statuses
 still go through `onJsonError` or throw the default error.
+
+Zod schemas can be placed directly in a response map. Statuses from 400 through
+599 are error branches; lower statuses are success branches.
+
+```ts
+export const getUser = http.get('users/:id', {
+  response: {
+    200: User,
+    404: z.object({ code: z.literal('NOT_FOUND') }),
+  },
+})
+```
+
+Rouzer validates these bodies before encoding them in the router and after
+decoding them in the generated client. `$type<T>()` and `$error<T>()` remain
+available for contracts that only need TypeScript types.
 
 ## Multiple Success Statuses
 

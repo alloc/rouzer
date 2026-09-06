@@ -23,7 +23,9 @@ those concerns separate while showing where they meet.
    success body.
 7. Read [Runtime and adapters](runtime.md) when mounting Rouzer in a server or
    test harness.
-8. Read [Patterns, constraints, and migrations](patterns.md) before settling on
+8. Read [OpenAPI export](openapi.md) when another language or tool consumes the
+   route contract.
+9. Read [Patterns, constraints, and migrations](patterns.md) before settling on
    a project structure or reviewing an integration.
 
 > [!IMPORTANT]
@@ -42,6 +44,7 @@ those concerns separate while showing where they meet.
 | [Typed client](client.md)                            | `createClient`, generated action functions, flat input objects, headers, custom fetch, `onJsonError`, and lifecycle hooks.                          |
 | [Responses, errors, and plugins](responses.md)       | `$type`, `$error`, response maps, status tuples, custom `Response` returns, and response plugin contracts.                                          |
 | [NDJSON streaming](streaming.md)                     | Streaming response markers, router/client plugin registration, cancellation, and stream error modeling.                                             |
+| [OpenAPI export](openapi.md)                         | Zod-backed OpenAPI 3.1 generation for external client and documentation tools.                                                                      |
 | [Runtime and adapters](runtime.md)                   | Root `toFetchHandler`, fetch-compatible mounting, custom host data, tests, CORS, and background work.                                               |
 | [Patterns, constraints, and migrations](patterns.md) | Preferred project structure, common constraints, and migration notes from older Rouzer shapes.                                                      |
 | [Migration from v5 to v6](migration-v5-to-v6.md)     | Hattip-compatible to fetch-compatible server mounting, type, test, host data, and runtime-filter updates.                                           |

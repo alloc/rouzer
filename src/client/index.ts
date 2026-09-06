@@ -1,6 +1,6 @@
 import { RoutePattern } from '@remix-run/route-pattern'
 import { createHref } from '@remix-run/route-pattern/href'
-import type { ZodObject } from 'zod'
+import * as z from 'zod'
 import { Promisable, shake } from '../common.js'
 import {
   isRawBodySchema,
@@ -10,8 +10,9 @@ import {
 } from '../http.js'
 import {
   getResponseMapPluginIds,
-  isErrorMarker,
+  isErrorResponse,
   isResponseMap,
+  isZodResponseSchema,
 } from '../response-map.js'
 import {
   createResponsePluginMap,
@@ -199,8 +200,15 @@ export function createClient<
       const status = response.status
       if (status in responseSchema) {
         const marker = responseSchema[status]
-        if (isErrorMarker(marker)) {
-          return [await response.json(), null, status] as T['$result']
+        if (isErrorResponse(status, marker)) {
+          const value = await response.json()
+          return [
+            isZodResponseSchema(marker)
+              ? await marker.parseAsync(value)
+              : value,
+            null,
+            status,
+          ] as T['$result']
         }
         const pluginId = getResponsePluginMarkerId(marker)
         if (pluginId) {
@@ -217,7 +225,12 @@ export function createClient<
             status,
           ] as T['$result']
         }
-        return [null, await response.json(), status] as T['$result']
+        const value = await response.json()
+        return [
+          null,
+          isZodResponseSchema(marker) ? await marker.parseAsync(value) : value,
+          status,
+        ] as T['$result']
       }
       // Undeclared status — reject
       return handleResponseError(response, props)
@@ -239,7 +252,10 @@ export function createClient<
       }) as T['$result']
     }
 
-    return response.json()
+    const value = await response.json()
+    return isZodResponseSchema(responseSchema)
+      ? responseSchema.parseAsync(value)
+      : value
   }
 
   async function plainClientRequest<T extends ClientRequest>(
@@ -338,8 +354,9 @@ export type ClientTree<T extends HttpRouteTree, TPrefix extends string = ''> = {
 /**
  * Client action function attached for each HTTP action leaf.
  *
- * @remarks Actions whose schema has `response: $type<T>()` return parsed JSON
- * as `T`. Actions whose schema has a status-keyed response map return a tuple
+ * @remarks Actions whose schema has `response: $type<T>()` or a Zod schema
+ * return parsed JSON as the inferred type. Actions whose schema has a
+ * status-keyed response map return a tuple
  * union of `[null, value, status]` success entries and `[error, null, status]`
  * error entries. Actions whose schema has a plugin response marker return the
  * plugin's client result type. Actions without a response marker return the raw
@@ -541,7 +558,7 @@ function hasRouteInput(node: HttpAction, path: RoutePattern) {
   )
 }
 
-function pickObjectSchemaFields(schema: ZodObject, input: unknown) {
+function pickObjectSchemaFields(schema: z.ZodObject, input: unknown) {
   if (typeof input !== 'object' || input === null) {
     return input
   }

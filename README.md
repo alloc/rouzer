@@ -145,6 +145,7 @@ handler return values at the server boundary.
 - [Typed client](docs/client.md)
 - [Responses, errors, and plugins](docs/responses.md)
 - [NDJSON streaming](docs/streaming.md)
+- [OpenAPI export](docs/openapi.md)
 - [Runtime and adapters](docs/runtime.md)
 - [Patterns, constraints, and migrations](docs/patterns.md)
 - [Migration from v5 to v6](docs/migration-v5-to-v6.md)

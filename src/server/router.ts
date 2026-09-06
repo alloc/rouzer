@@ -21,8 +21,9 @@ import {
 import {
   getDefaultSuccessStatus,
   getResponseMapPluginIds,
-  isErrorMarker,
+  isErrorResponse,
   isResponseMap,
+  isZodResponseSchema,
 } from '../response-map.js'
 import type { RouteResponseMap, RouteSchema } from '../types/schema.js'
 import type { RouteRequestHandlerMap } from '../types/server.js'
@@ -262,7 +263,11 @@ class RouterObject extends MiddlewareChain {
             responsePlugins
           )
         }
-        return Response.json(result)
+        return Response.json(
+          isZodResponseSchema(schema.response)
+            ? await schema.response.parseAsync(result)
+            : result
+        )
       }
     } as any)
   }
@@ -528,7 +533,7 @@ function createResponseHelper(
 ) {
   return (status: number, body: unknown): Promise<Response> | Response => {
     const marker = responseMap[status]
-    if (!marker || isErrorMarker(marker) !== error) {
+    if (!marker || isErrorResponse(status, marker) !== error) {
       throw new Error(
         `Undeclared ${error ? 'error' : 'success'} response status: ${status}`
       )
@@ -554,7 +559,10 @@ async function encodeResponseMapResult(
   if (!marker) {
     throw new Error(`Undeclared response status: ${status}`)
   }
-  if (isErrorMarker(marker)) {
+  if (isZodResponseSchema(marker)) {
+    return Response.json(await marker.parseAsync(value), { status })
+  }
+  if (isErrorResponse(status, marker)) {
     return Response.json(value, { status })
   }
   const pluginId = getResponsePluginMarkerId(marker)
