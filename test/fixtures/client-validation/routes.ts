@@ -18,6 +18,12 @@ export const transformedQueryRoute = http.get('transformed-query', {
   }),
 })
 
+export const repeatedQueryRoute = http.get('repeated-query', {
+  query: z.object({
+    language: z.array(z.string()).min(1),
+  }),
+})
+
 export const bodyRoute = http.post('body', {
   body: z.object({
     count: z.number().check(z.int(), z.positive()),

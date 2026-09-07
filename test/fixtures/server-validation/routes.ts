@@ -12,7 +12,7 @@ export const validateRoute = http.get('validate/:id', {
   headers: z.object({
     'x-token': z.string().check(z.minLength(3)),
   }),
-  response: $type<{ ok: boolean }>(),
+  response: $type<{ ok: boolean; q: string }>(),
 })
 
 export const submitRoute = http.post('submit', {

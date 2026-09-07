@@ -8,6 +8,9 @@ export default createRouter().use(routes, {
       value: ctx.query.value,
       active: ctx.query.active,
       optionalVal: ctx.query.optionalVal,
+      languages: ctx.query.languages,
+      levels: ctx.query.levels,
+      flags: ctx.query.flags,
     }
   },
 })

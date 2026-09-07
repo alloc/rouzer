@@ -47,6 +47,12 @@ export default {
       'Invalid request headers'
     )
 
+    const repeatedScalar = await fetch(
+      `${baseURL}/validate/ok?q=first&q=last`,
+      { headers: { 'x-token': 'abc' } }
+    )
+    expect(await repeatedScalar.json()).toEqual({ ok: true, q: 'last' })
+
     await assertInvalid(
       fetch,
       `${baseURL}/submit`,

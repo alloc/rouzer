@@ -2,6 +2,7 @@ import { RoutePattern } from '@remix-run/route-pattern'
 import { createHref } from '@remix-run/route-pattern/href'
 import * as z from 'zod'
 import { Promisable, shake } from '../common.js'
+import { createQueryString } from '../query-string.js'
 import {
   isRawBodySchema,
   type HttpAction,
@@ -156,9 +157,7 @@ export function createClient<
       const query = schema.query.parse(
         pickObjectSchemaFields(schema.query, input)
       )
-      url.search = new URLSearchParams(
-        shake(query) as Record<string, string>
-      ).toString()
+      url.search = createQueryString(schema.query, shake(query))
     }
     let body: unknown
     if (schema.body) {

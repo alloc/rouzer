@@ -146,6 +146,25 @@ await client.updateProfile({
 Per-request `RequestInit` options, including headers and abort signals, are
 passed as the second argument.
 
+### Repeated query values
+
+Declare an array field when a query parameter can occur more than once:
+
+```ts
+export const searchProfiles = http.get('profiles', {
+  query: z.object({
+    language: z.array(z.string()).min(1),
+  }),
+})
+
+await client.searchProfiles({ language: ['Rust', 'TypeScript'] })
+// GET /profiles?language=Rust&language=TypeScript
+```
+
+The handler receives the parsed array as `ctx.query.language`. A single
+occurrence, such as `?language=Rust`, is parsed as a one-element array. Scalar
+query fields keep their existing single-value behavior.
+
 ## Raw Bodies
 
 Use `http.rawBody()` when an action should pass a `BodyInit` through to `fetch`

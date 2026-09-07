@@ -41,6 +41,17 @@ export default {
     )
     fetch.mockClear()
 
+    await expect(
+      queryClient.repeatedQueryRoute({ language: ['Rust', 'TypeScript'] })
+    ).resolves.toBeInstanceOf(Response)
+    expect(fetch).toHaveBeenCalledWith(
+      new URL(
+        'http://test.local/repeated-query?language=Rust&language=TypeScript'
+      ),
+      expect.any(Object)
+    )
+    fetch.mockClear()
+
     const bodyClient = createClient({
       baseURL: 'http://test.local',
       routes,

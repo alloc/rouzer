@@ -12,6 +12,7 @@ import {
 import * as z from 'zod'
 import { mapValues } from '../common.js'
 import { isRawBodySchema, type HttpRouteTree } from '../http.js'
+import { parseQueryStringInput } from '../query-string.js'
 import {
   createResponsePluginMap,
   getResponsePluginMarkerId,
@@ -204,10 +205,7 @@ class RouterObject extends MiddlewareChain {
         }
 
         if (schema.query) {
-          const error = parseQueryString(
-            context,
-            enableStringParsing(schema.query)
-          )
+          const error = parseQueryString(context, schema.query)
           if (error) {
             addDebugHeaders?.(context, route)
             return httpClientError(error, 'Invalid query string', config)
@@ -434,10 +432,11 @@ function parseHeaders(
 
 function parseQueryString(
   context: RequestContext & { url?: URL; query?: {} },
-  schema: z.ZodType<any, any>
+  schema: z.ZodObject<any>
 ) {
-  const result = schema.safeParse(
-    Object.fromEntries(context.url!.searchParams as any)
+  const parsingSchema = enableStringParsing(schema) as z.ZodType<any, any>
+  const result = parsingSchema.safeParse(
+    parseQueryStringInput(schema, context.url!.searchParams)
   )
   if (!result.success) {
     return result.error
